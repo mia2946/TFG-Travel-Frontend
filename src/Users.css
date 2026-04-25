@@ -1,0 +1,141 @@
+/* =========================
+   USER TABS
+========================= */
+
+.user-page .user-tabs-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.user-page .user-tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0.6rem;
+
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+
+  transition: all 0.2s ease;
+}
+
+/* ICONOS */
+.user-page .user-tab-button i {
+  font-size: 1.2rem;
+}
+
+/* TEXTO OCULTO EN MÓVIL */
+.user-page .tab-text {
+  display: none;
+}
+
+/* ACTIVO */
+.user-page .user-tab-button.active {
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3);
+}
+
+/* HOVER */
+.user-page .user-tab-button:hover {
+  transform: translateY(-2px);
+}
+
+/* DESKTOP */
+@media (min-width: 992px) {
+  .user-page .user-tabs-container {
+    flex-direction: column;
+  }
+
+  .user-page .user-tab-button {
+    justify-content: flex-start;
+    width: 100%;
+    padding: 0.75rem 1rem;
+  }
+
+  .user-page .tab-text {
+    display: inline;
+  }
+
+  .user-page .user-tab-button i {
+    margin-right: 0.5rem;
+  }
+}
+
+/* MÓVIL */
+@media (max-width: 991.98px) {
+  .user-page .user-tab-button {
+    flex: 1 1 18%;
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+/* =========================
+   INPUTS (DARK MODE)
+========================= */
+
+.user-page .form-control,
+.user-page .form-select {
+  background-color: #1f1f1f;
+  color: white;
+  border: 1px solid #444;
+}
+
+.user-page .form-control:focus,
+.user-page .form-select:focus {
+  background-color: #1f1f1f;
+  color: white;
+  border-color: #0d6efd;
+  box-shadow: none;
+}
+
+/* =========================
+   FLOATING LABELS
+========================= */
+
+.user-page .form-floating > label {
+  color: #aaa;
+  padding-left: 2.5rem;
+}
+
+/* ACTIVO / CON VALOR */
+.user-page .form-floating > .form-control:focus ~ label,
+.user-page .form-floating > .form-control:not(:placeholder-shown) ~ label,
+.user-page .form-floating > .form-select ~ label {
+  color: #0d6efd;
+}
+
+/* evita que el placeholder choque con el label flotante */
+.user-page .form-control::placeholder {
+  color: transparent;
+}
+
+/* =========================
+   INPUT CON ICONO
+========================= */
+
+.user-page .input-icon {
+  position: relative;
+}
+
+.user-page .input-icon i {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #aaa;
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.user-page .input-icon .form-control,
+.user-page .input-icon .form-select {
+  padding-left: 2.5rem;
+}
