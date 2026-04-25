@@ -46,7 +46,7 @@ export default function AccommodationsForm() {
   return (
     <>
       <form onSubmit={handleSubmit}>
-        <h4 className="mb-3 text-center">Search Accommodations</h4>
+        <h4 className="mb-3 text-center">Search Activities</h4>
 
         <div className="form-floating input-icon mb-3">
           <i className="bi bi-building"></i>
@@ -106,7 +106,7 @@ export default function AccommodationsForm() {
         </div>
 
         <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-          {loading ? "Searching..." : "Search Accommodations"}
+          {loading ? "Searching..." : "Search Activities"}
         </button>
       </form>
 

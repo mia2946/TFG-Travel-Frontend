@@ -22,7 +22,7 @@ function Home() {
         }}
       > 
       
-        <h1 className="mb-4">Bienvenido 👋</h1>
+        <h1 className="mb-4">Bienvenido</h1>
 
         <p className="mb-4">
           Accede a tu cuenta o crea una nueva

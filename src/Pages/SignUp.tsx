@@ -33,16 +33,8 @@ function SignUp() {
     
     try {
         const { repeatPassword, ...userData } = form;
-
-        await register({
-          ...userData,
-          id: Date.now(),
-          active: true,
-        });
-
+        await register(userData);
         navigate("/login");
-
-    
     } catch (err: any) {
         setError(err.message);
     }
@@ -74,8 +66,7 @@ function SignUp() {
           </div>
         </div>
 
-        <input name="username" className="form-control mb-3" placeholder="Username" onChange={handleChange} required />
-        <input type="email" name="email" className="form-control mb-3" placeholder="Email" onChange={handleChange} required />
+        <input type="email" name="email" className="form-control mb-3" placeholder="Username (email)" onChange={handleChange} required />
         <input type="password"
             name="password"
             className="form-control mb-3"
