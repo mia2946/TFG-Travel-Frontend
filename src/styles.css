@@ -1,0 +1,38 @@
+body {
+  background: #121212;
+}
+
+
+/* Botón principal */
+.btn-modern {
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Botón Login */
+.btn-login {
+  background: linear-gradient(135deg, #4f8cff, #6a5cff);
+  border: none;
+  color: white;
+}
+
+.btn-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Botón Sign In */
+.btn-signup {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  backdrop-filter: blur(6px);
+}
+
+.btn-signup:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
