@@ -15,8 +15,6 @@ export type AccommodationSearchRequest = {
 
 export type ActivitySearchRequest = {
   destination: string;
-  date?: string;
-  category?: string;
 };
 
 export type TransportSearchRequest = {
