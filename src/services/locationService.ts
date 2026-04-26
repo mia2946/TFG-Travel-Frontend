@@ -1,6 +1,8 @@
 export type CitySuggestion = {
   name: string;
   country: string;
+  lat: string;
+  lon: string;
 };
 
 let citiesCache: CitySuggestion[] = [];
@@ -28,22 +30,32 @@ export async function loadCities(): Promise<CitySuggestion[]> {
 
   const cityIndex = headers.indexOf("city");
   const countryIndex = headers.indexOf("country");
+  const latIndex = headers.indexOf("lat");
+  const lngIndex = headers.indexOf("lng");
 
-  if (cityIndex === -1 || countryIndex === -1) {
+  if (
+    cityIndex === -1 ||
+    countryIndex === -1 ||
+    latIndex === -1 ||
+    lngIndex === -1
+  ) {
     console.error("CSV headers not found:", headers);
     return [];
   }
 
-  citiesCache = lines.slice(1)
+  citiesCache = lines
+    .slice(1)
     .map((line) => {
       const cols = parseCSVLine(line);
 
       return {
         name: cols[cityIndex],
         country: cols[countryIndex],
+        lat: cols[latIndex],
+        lon: cols[lngIndex],
       };
     })
-    .filter((city) => city.name && city.country);
+    .filter((city) => city.name && city.country && city.lat && city.lon);
 
   return citiesCache;
 }
@@ -57,7 +69,8 @@ export async function searchCities(query: string): Promise<CitySuggestion[]> {
 
   return cities
     .filter((city) =>
-      `${city.name} ${city.country}`.toLowerCase().includes(q)
+        city.name.toLowerCase().startsWith(q) ||
+        city.country.toLowerCase().startsWith(q)
     )
     .slice(0, 10);
 }

@@ -15,6 +15,8 @@ export type AccommodationSearchRequest = {
 
 export type ActivitySearchRequest = {
   destination: string;
+  lat?: string;
+  lon?: string;
 };
 
 export type TransportSearchRequest = {
