@@ -5,11 +5,18 @@ import type { ActivityResult, ActivitySearchRequest } from "../types/search";
 export async function searchActivities(
   request: ActivitySearchRequest
 ): Promise<ActivityResult[]> {
-  const endpoint = API_CONFIG.activities;
-  const url = `${API_CONFIG.baseUrl}${endpoint.path}`;
+  const radiusMeters = request.radius ?? 3000;
 
-  return apiRequest<ActivityResult[]>(url, {
-    method: endpoint.method,
-    body: request,
+  const params = new URLSearchParams({
+    lat: String(request.lat),
+    lon: String(request.lon),
+    radiusMeters: String(radiusMeters),
   });
+
+  return apiRequest<ActivityResult[]>(
+    `${API_CONFIG.baseUrl}/pois/v2/activities/geoapify?${params.toString()}`,
+    {
+      method: "GET",
+    }
+  );
 }

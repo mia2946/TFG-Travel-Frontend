@@ -74,3 +74,38 @@ export async function searchCities(query: string): Promise<CitySuggestion[]> {
     )
     .slice(0, 10);
 }
+
+export type ResolvedLocation = {
+  destination: string;
+  lat: string;
+  lon: string;
+};
+
+export async function resolveCityCoordinates(
+  destination: string,
+  lat?: string,
+  lon?: string
+): Promise<ResolvedLocation> {
+
+  if (lat && lon) {
+    return {
+      destination,
+      lat,
+      lon,
+    };
+  }
+
+  const matches = await searchCities(destination);
+
+  if (matches.length === 0) {
+    throw new Error("City not found");
+  }
+
+  const best = matches[0];
+
+  return {
+    destination: `${best.name}, ${best.country}`,
+    lat: best.lat,
+    lon: best.lon,
+  };
+}

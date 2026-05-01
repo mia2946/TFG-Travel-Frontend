@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { searchCities, loadCities } from "../../services/locationService";
+import { useState } from "react";
+import CityAutocompleteInput from "./CityAutocompleteInput";
+import { resolveCityCoordinates } from "../../services/locationService";
 import { searchActivities } from "../../services/activityService";
 import type {
   ActivityResult,
@@ -11,72 +12,19 @@ export default function ActivitiesForm() {
     destination: "",
     lat: "",
     lon: "",
+    activityType: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ActivityResult[]>([]);
   const [error, setError] = useState("");
 
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  const destinationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadCities();
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        destinationRef.current &&
-        !destinationRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, []);
-
-  useEffect(() => {
-    if (form.destination.trim().length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      const results = await searchCities(form.destination);
-      setSuggestions(results);
-      setShowSuggestions(results.length > 0);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [form.destination]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     setForm((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === "destination" ? { lat: "", lon: "" } : {}),
     }));
   };
 
@@ -88,29 +36,18 @@ export default function ActivitiesForm() {
     setLoading(true);
 
     try {
-      let finalForm = { ...form };
+      const coords = await resolveCityCoordinates(
+        form.destination,
+        form.lat,
+        form.lon
+      );
 
-      if (!form.lat || !form.lon) {
-        const matches = await searchCities(form.destination);
+      const finalForm = {
+        ...form,
+        ...coords,
+      };
 
-        if (matches.length > 0) {
-          finalForm = {
-            ...finalForm,
-            destination: `${matches[0].name}, ${matches[0].country}`,
-            lat: matches[0].lat,
-            lon: matches[0].lon,
-          };
-
-          setForm(finalForm);
-        } else {
-          setError("City not found");
-          setLoading(false);
-          return;
-        }
-      }
-
-      console.log("LATITUDE:", finalForm.lat);
-      console.log("LONGITUDE:", finalForm.lon);
+      console.log("ACTIVITIES SEARCH:", finalForm);
 
       const data = await searchActivities(finalForm);
       setResults(data);
@@ -127,51 +64,37 @@ export default function ActivitiesForm() {
       <form onSubmit={handleSubmit}>
         <h4 className="mb-3 text-center">Search Activities</h4>
 
-        <div ref={destinationRef} className="position-relative mb-3">
-          <div className="form-floating input-icon">
-            <i className="bi bi-building"></i>
+        <CityAutocompleteInput
+          name="destination"
+          label="Destination"
+          icon="bi-map"
+          value={form.destination}
+          required
+          onCityChange={({ value, lat, lon }) => {
+            setForm((prev) => ({
+              ...prev,
+              destination: value,
+              lat,
+              lon,
+            }));
+          }}
+        />
 
-            <input
-              type="text"
-              className="form-control"
-              name="destination"
-              placeholder="Destination"
-              value={form.destination}
-              onChange={handleChange}
-              onFocus={() => {
-                if (suggestions.length > 0) {
-                  setShowSuggestions(true);
-                }
-              }}
-              autoComplete="off"
-              required
-            />
-
-            <label>Destination</label>
-          </div>
-
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="suggestions-dropdown">
-              {suggestions.map((city, index) => (
-                <div
-                  key={`${city.name}-${city.country}-${index}`}
-                  className="suggestion-item"
-                  onClick={() => {
-                    setForm((prev) => ({
-                      ...prev,
-                      destination: `${city.name}, ${city.country}`,
-                      lat: city.lat,
-                      lon: city.lon,
-                    }));
-
-                    setShowSuggestions(false);
-                  }}
-                >
-                  {city.name}, {city.country}
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="form-floating input-icon mb-3">
+          <i className="bi bi-stars"></i>
+          <select
+            className="form-select"
+            name="activityType"
+            value={form.activityType || ""}
+            onChange={handleChange}
+          >
+            <option value="">All</option>
+            <option value="culture">Culture</option>
+            <option value="nature">Nature</option>
+            <option value="museums">Museums</option>
+            <option value="tours">Tours</option>
+          </select>
+          <label>Activity Type</label>
         </div>
 
         <button

@@ -49,7 +49,24 @@ export const API_CONFIG = {
   } satisfies EndpointConfig,
 
   pois: {
-    path: getEnv("VITE_POIS_PATH", "/api/pois/search"),
-    method: getMethod("VITE_POIS_METHOD", "POST"),
-  } satisfies EndpointConfig,
+    foodDrink: {
+      path: getEnv("VITE_POIS_FOOD_DRINK_PATH", "/pois/v2/food-drink/details"),
+      method: getMethod("VITE_POIS_FOOD_DRINK_METHOD", "GET"),
+    } satisfies EndpointConfig,
+
+    transport: {
+      path: getEnv("VITE_POIS_TRANSPORT_PATH", "/pois/v2/transport-pois"),
+      method: getMethod("VITE_POIS_TRANSPORT_METHOD", "GET"),
+    } satisfies EndpointConfig,
+
+    amenities: {
+      path: getEnv("VITE_POIS_AMENITIES_PATH", "/pois/v2/amenities"),
+      method: getMethod("VITE_POIS_AMENITIES_METHOD", "POST"),
+    } satisfies EndpointConfig,
+
+    embassies: {
+      path: getEnv("VITE_POIS_EMBASSIES_PATH", "/pois/v2/embassies"),
+      method: getMethod("VITE_POIS_EMBASSIES_METHOD", "POST"),
+    } satisfies EndpointConfig,
+  },
 };

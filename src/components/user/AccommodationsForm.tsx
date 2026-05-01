@@ -1,13 +1,22 @@
 import { useState } from "react";
+import CityAutocompleteInput from "./CityAutocompleteInput";
+import { searchCities } from "../../services/locationService";
 import { searchAccommodations } from "../../services/accommodationService";
 import type {
   AccommodationResult,
   AccommodationSearchRequest,
 } from "../../types/search";
 
+type AccommodationFormState = AccommodationSearchRequest & {
+  lat?: string;
+  lon?: string;
+};
+
 export default function AccommodationsForm() {
-  const [form, setForm] = useState<AccommodationSearchRequest>({
+  const [form, setForm] = useState<AccommodationFormState>({
     destination: "",
+    lat: "",
+    lon: "",
     checkIn: "",
     checkOut: "",
     guests: 1,
@@ -28,16 +37,39 @@ export default function AccommodationsForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setError("");
     setResults([]);
     setLoading(true);
 
     try {
-      const data = await searchAccommodations(form);
+      let finalForm = { ...form };
+
+      if (!finalForm.lat || !finalForm.lon) {
+        const matches = await searchCities(finalForm.destination);
+
+        if (matches.length > 0) {
+          finalForm = {
+            ...finalForm,
+            destination: `${matches[0].name}, ${matches[0].country}`,
+            lat: matches[0].lat,
+            lon: matches[0].lon,
+          };
+
+          setForm(finalForm);
+        } else {
+          setError("City not found");
+          return;
+        }
+      }
+
+      console.log("ACCOMMODATIONS SEARCH:", finalForm);
+
+      const data = await searchAccommodations(finalForm);
       setResults(data);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron obtener los alojamientos");
+      setError("Accommodations not found");
     } finally {
       setLoading(false);
     }
@@ -48,19 +80,21 @@ export default function AccommodationsForm() {
       <form onSubmit={handleSubmit}>
         <h4 className="mb-3 text-center">Search Accommodations</h4>
 
-        <div className="form-floating input-icon mb-3">
-          <i className="bi bi-building"></i>
-          <input
-            type="text"
-            className="form-control"
-            name="destination"
-            placeholder="Destination"
-            value={form.destination}
-            onChange={handleChange}
-            required
-          />
-          <label>Destination</label>
-        </div>
+        <CityAutocompleteInput
+          name="destination"
+          label="Destination"
+          icon="bi-building"
+          value={form.destination}
+          required
+          onCityChange={({ value, lat, lon }) => {
+            setForm((prev) => ({
+              ...prev,
+              destination: value,
+              lat,
+              lon,
+            }));
+          }}
+        />
 
         <div className="form-floating input-icon mb-3">
           <i className="bi bi-calendar"></i>
@@ -105,7 +139,11 @@ export default function AccommodationsForm() {
           <label>Guests</label>
         </div>
 
-        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary w-100"
+          disabled={loading}
+        >
           {loading ? "Searching..." : "Search Accommodations"}
         </button>
       </form>
