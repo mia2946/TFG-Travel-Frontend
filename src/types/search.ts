@@ -50,6 +50,25 @@ export type PoiSearchRequest = {
 
 export type FlightResult = Record<string, unknown>;
 export type AccommodationResult = Record<string, unknown>;
-export type ActivityResult = Record<string, unknown>;
+//export type ActivityResult = Record<string, unknown>;
+export type ActivityResult = {
+  type: string;
+  geometry: {
+    type: string;
+    coordinates: number[];
+  };
+  properties: {
+    name?: string | null;
+    formatted?: string | null;
+    city?: string | null;
+    country?: string | null;
+    categories?: string[];
+    inferredType?: string;
+    datasource?: {
+      sourcename?: string;
+      attribution?: string;
+    };
+  };
+};
 export type TransportResult = Record<string, unknown>;
 export type PoiResult = Record<string, unknown>;

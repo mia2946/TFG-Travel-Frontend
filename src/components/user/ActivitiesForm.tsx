@@ -1,7 +1,9 @@
 import { useState } from "react";
 import CityAutocompleteInput from "./CityAutocompleteInput";
+import TravelPlanSelector from "./TravelPlanSelector";
 import { resolveCityCoordinates } from "../../services/locationService";
 import { searchActivities } from "../../services/activityService";
+import { addPoiToTravel } from "../../services/travelService";
 import type {
   ActivityResult,
   ActivitySearchRequest,
@@ -18,6 +20,13 @@ export default function ActivitiesForm() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ActivityResult[]>([]);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [selectedTravelId, setSelectedTravelId] = useState<number | "">("");
+  const [savingActivityId, setSavingActivityId] = useState<string | number | null>(null);
+
+  const [plannedDateTimeByActivityId, setPlannedDateTimeByActivityId] =
+    useState<Record<string | number, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -28,10 +37,20 @@ export default function ActivitiesForm() {
     }));
   };
 
+  const getActivityId = (activity: ActivityResult, index: number) => {
+    const coords = activity.geometry?.coordinates;
+    const name = activity.properties?.name;
+
+    return `${name || "activity"}-${coords?.[0] || "lon"}-${
+      coords?.[1] || "lat"
+    }-${index}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setError("");
+    setSuccess("");
     setResults([]);
     setLoading(true);
 
@@ -42,14 +61,11 @@ export default function ActivitiesForm() {
         form.lon
       );
 
-      const finalForm = {
+      const data = await searchActivities({
         ...form,
         ...coords,
-      };
+      });
 
-      console.log("ACTIVITIES SEARCH:", finalForm);
-
-      const data = await searchActivities(finalForm);
       setResults(data);
     } catch (err) {
       console.error(err);
@@ -59,8 +75,72 @@ export default function ActivitiesForm() {
     }
   };
 
+  const handleAddActivityToTravel = async (
+    activity: ActivityResult,
+    index: number
+  ) => {
+    if (!selectedTravelId) {
+      setError("Please select a travel plan first.");
+      return;
+    }
+
+    const activityId = getActivityId(activity, index);
+    const props = activity.properties;
+    const coords = activity.geometry?.coordinates;
+
+    const name = props?.name || "Unnamed activity";
+    const category = props?.inferredType || props?.categories?.[0] || "";
+    const address = props?.formatted || "";
+    const lon = coords?.[0];
+    const lat = coords?.[1];
+    const plannedDateTime = plannedDateTimeByActivityId[activityId];
+
+    try {
+      setError("");
+      setSuccess("");
+      setSavingActivityId(activityId);
+
+      await addPoiToTravel(Number(selectedTravelId), {
+        idPoi: null,
+        externalId: activityId,
+        source: props?.datasource?.sourcename || "GEOAPIFY",
+        name,
+        category,
+        type: category,
+        latitude: lat,
+        longitude: lon,
+        address,
+        description: address,
+        bookingLink: "",
+        phone: "",
+        price: "",
+        imageUrl: "",
+        plannedDateTime: plannedDateTime
+          ? new Date(plannedDateTime).toISOString()
+          : null,
+        rawData: {
+          ...activity,
+          searchDestination: form.destination,
+          searchCountry: "Spain",
+        },
+      });
+
+      setSuccess(`${name} added to the travel plan.`);
+    } catch (err) {
+      console.error(err);
+      setError("Activity could not be added to the travel plan.");
+    } finally {
+      setSavingActivityId(null);
+    }
+  };
+
   return (
     <>
+      <TravelPlanSelector
+        selectedTravelId={selectedTravelId}
+        onTravelSelected={setSelectedTravelId}
+      />
+
       <form onSubmit={handleSubmit}>
         <h4 className="mb-3 text-center">Search Activities</h4>
 
@@ -82,6 +162,7 @@ export default function ActivitiesForm() {
 
         <div className="form-floating input-icon mb-3">
           <i className="bi bi-stars"></i>
+
           <select
             className="form-select"
             name="activityType"
@@ -94,6 +175,7 @@ export default function ActivitiesForm() {
             <option value="museums">Museums</option>
             <option value="tours">Tours</option>
           </select>
+
           <label>Activity Type</label>
         </div>
 
@@ -107,13 +189,85 @@ export default function ActivitiesForm() {
       </form>
 
       {error && <div className="alert alert-danger mt-3">{error}</div>}
+      {success && <div className="alert alert-success mt-3">{success}</div>}
 
       {results.length > 0 && (
-        <div className="mt-4">
-          <h5>Results</h5>
-          <pre className="bg-dark text-light p-3 rounded">
-            {JSON.stringify(results, null, 2)}
-          </pre>
+        <div className="mt-4 text-center">
+          <h4 className="mb-4">Results ({results.length})</h4>
+
+          <div className="row g-4">
+            {results.map((activity, index) => {
+              const props = activity.properties;
+              const coords = activity.geometry?.coordinates;
+
+              const activityId = getActivityId(activity, index);
+              const name = props?.name || "Unnamed activity";
+              const category =
+                props?.inferredType || props?.categories?.[0];
+              const address = props?.formatted;
+              const lon = coords?.[0];
+              const lat = coords?.[1];
+
+              return (
+                <div className="col-12 col-md-6" key={activityId}>
+                  <div className="card bg-dark text-light border-secondary h-100 shadow-sm">
+                    <div className="card-body">
+                      <h5 className="card-title text-primary mb-3">{name}</h5>
+
+                      {category && (
+                        <p className="mb-2">
+                          <strong>Category:</strong> {category}
+                        </p>
+                      )}
+
+                      {address && (
+                        <p className="mb-2">
+                          <strong>Address:</strong> {address}
+                        </p>
+                      )}
+
+                      {lat && lon && (
+                        <p className="mb-2">
+                          <strong>Coordinates:</strong> {lat}, {lon}
+                        </p>
+                      )}
+
+                      <div className="mt-3">
+                        <label className="form-label small mb-1">
+                          Planned date and time
+                        </label>
+
+                        <input
+                          type="datetime-local"
+                          className="form-control form-control-sm"
+                          value={plannedDateTimeByActivityId[activityId] || ""}
+                          onChange={(e) =>
+                            setPlannedDateTimeByActivityId((prev) => ({
+                              ...prev,
+                              [activityId]: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-success btn-sm mt-3"
+                        disabled={
+                          !selectedTravelId || savingActivityId === activityId
+                        }
+                        onClick={() => handleAddActivityToTravel(activity, index)}
+                      >
+                        {savingActivityId === activityId
+                          ? "Adding..."
+                          : "Add to travel"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </>

@@ -236,6 +236,11 @@ export default function TravelPlans() {
                                 <div key={poi.id} className="col-12 col-md-6">
                                   <div className="p-3 rounded border border-secondary h-100">
                                     <h6>{poi.name}</h6>
+                                    {poi.address && poi.address.trim() !== "" && (
+                                      <p className="mb-1">
+                                        <strong>Address:</strong> {poi.address}
+                                      </p>
+                                    )}
                                     <p className="mb-1">
                                       <strong>Type:</strong>{" "}
                                       {poi.type ?? ""}
