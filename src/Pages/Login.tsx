@@ -22,7 +22,7 @@ function Login() {
       if (!user) {
         console.log("__________________________USER________________________");
         console.log(user);
-        setError("Credenciales incorrectas77777");
+        setError("Credenciales incorrectas");
 
         return;
       }

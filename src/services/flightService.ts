@@ -1,15 +1,36 @@
 import { API_CONFIG } from "../config/api";
-import { apiRequest } from "./apiClient";
-import type { FlightResult, FlightSearchRequest } from "../types/search";
+import type { FlightSearchRequest, FlightsApiResponse } from "../types/search";
 
 export async function searchFlights(
   request: FlightSearchRequest
-): Promise<FlightResult[]> {
-  const endpoint = API_CONFIG.flights;
-  const url = `${API_CONFIG.baseUrl}${endpoint.path}`;
+): Promise<FlightsApiResponse> {
+  const url = new URL(`${API_CONFIG.baseUrl}/api/flights/search`);
 
-  return apiRequest<FlightResult[]>(url, {
-    method: endpoint.method,
-    body: request,
+  url.searchParams.append("departureId", request.departureId);
+  url.searchParams.append("arrivalId", request.arrivalId);
+  url.searchParams.append("outboundDate", request.outboundDate);
+
+  if (request.returnDate) {
+    url.searchParams.append("returnDate", request.returnDate);
+  }
+
+  url.searchParams.append("currency", request.currency ?? "EUR");
+  url.searchParams.append("hl", request.hl ?? "es");
+  url.searchParams.append("gl", request.gl ?? "es");
+  url.searchParams.append("type", String(request.type ?? 2));
+  url.searchParams.append("travelClass", String(request.travelClass ?? 1));
+  url.searchParams.append("sortBy", String(request.sortBy ?? 1));
+  url.searchParams.append("showHidden", String(request.showHidden ?? false));
+  url.searchParams.append("deepSearch", String(request.deepSearch ?? false));
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Could not search flights.");
+  }
+
+  return response.json();
 }

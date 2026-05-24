@@ -1,14 +1,81 @@
 export type FlightSearchRequest = {
-  origin: string;
-  originLat?: string;
-  originLon?: string;
-  destination: string;
-  destinationLat?: string;
-  destinationLon?: string;
-  departureDate: string;
+  departureId: string;
+  arrivalId: string;
+
+  outboundDate: string;
   returnDate?: string;
-  passengers: number;
-  tripType?: "oneWay" | "roundTrip";
+
+  passengers?: number;
+
+  currency?: string;
+  hl?: string;
+  gl?: string;
+
+  type?: 1 | 2 | 3;
+  travelClass?: 1 | 2 | 3 | 4;
+  sortBy?: 1 | 2 | 3 | 4 | 5;
+
+  showHidden?: boolean;
+  deepSearch?: boolean;
+};
+
+export type FlightAirportInfo = {
+  id?: string;
+  name?: string;
+  time?: string;
+};
+
+export type FlightLeg = {
+  airline?: string;
+  airline_logo?: string;
+  airplane?: string;
+  flight_number?: string;
+  travel_class?: string;
+  duration?: number;
+  legroom?: string;
+  departure_airport?: FlightAirportInfo;
+  arrival_airport?: FlightAirportInfo;
+  extensions?: string[];
+  often_delayed_by_over_30_min?: boolean | null;
+  overnight?: boolean | null;
+  ticket_also_sold_by?: string[] | null;
+};
+
+export type FlightLayover = {
+  duration?: number;
+  id?: string;
+  name?: string;
+  overnight?: boolean | null;
+};
+
+export type FlightCarbonEmissions = {
+  this_flight?: number;
+  typical_for_this_route?: number;
+  difference_percent?: number;
+};
+
+export type FlightOption = {
+  airline_logo?: string;
+  carbon_emissions?: FlightCarbonEmissions;
+  departure_token?: string | null;
+  flights?: FlightLeg[];
+  layovers?: FlightLayover[] | null;
+  price?: number;
+  total_duration?: number;
+  type?: string;
+};
+
+export type FlightsApiResponse = {
+  best_flights?: FlightOption[];
+  other_flights?: FlightOption[];
+  price_insights?: unknown | null;
+  airports?: unknown[];
+  search_metadata?: {
+    status?: string;
+    google_flights_url?: string;
+    total_time_taken?: number;
+  };
+  search_parameters?: Record<string, unknown>;
 };
 
 export type AccommodationSearchRequest = {
