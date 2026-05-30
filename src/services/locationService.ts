@@ -1,6 +1,7 @@
 export type CitySuggestion = {
   name: string;
   country: string;
+  countryCode: string;
   lat: string;
   lon: string;
 };
@@ -30,6 +31,7 @@ export async function loadCities(): Promise<CitySuggestion[]> {
 
   const cityIndex = headers.indexOf("city");
   const countryIndex = headers.indexOf("country");
+  const iso2Index = headers.indexOf("iso2");
   const latIndex = headers.indexOf("lat");
   const lngIndex = headers.indexOf("lng");
 
@@ -51,6 +53,7 @@ export async function loadCities(): Promise<CitySuggestion[]> {
       return {
         name: cols[cityIndex],
         country: cols[countryIndex],
+        countryCode: iso2Index !== -1 ? cols[iso2Index] : "",
         lat: cols[latIndex],
         lon: cols[lngIndex],
       };

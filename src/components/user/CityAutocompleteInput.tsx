@@ -4,6 +4,7 @@ import { loadCities, searchCities } from "../../services/locationService";
 type CitySuggestion = {
   name: string;
   country: string;
+  countryCode: string;
   lat: string;
   lon: string;
 };
@@ -17,6 +18,9 @@ type Props = {
   onCityChange: (data: {
     name: string;
     value: string;
+    cityName: string;
+    country: string;
+    countryCode: string;
     lat: string;
     lon: string;
   }) => void;
@@ -74,6 +78,9 @@ export default function CityAutocompleteInput({
     onCityChange({
       name,
       value: e.target.value,
+      cityName: "",
+      country: "",
+      countryCode: "",
       lat: "",
       lon: "",
     });
@@ -83,6 +90,9 @@ export default function CityAutocompleteInput({
     onCityChange({
       name,
       value: `${city.name}, ${city.country}`,
+      cityName: city.name,
+      country: city.country,
+      countryCode: city.countryCode,
       lat: city.lat,
       lon: city.lon,
     });

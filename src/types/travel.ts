@@ -1,3 +1,30 @@
+export type AppDestination = {
+  id?: number;
+  cityName: string;
+  country: string;
+  countryCode: string;
+  latitude: number;
+  longitude: number;
+  description?: string;
+};
+
+// Flat structure returned by the backend in savedFlights
+export type SavedFlight = {
+  id: number;
+  airline: string;
+  apiProvider: string;
+  arrivalTime: string;
+  cabinClass: string;
+  currency: string;
+  departureTime: string;
+  destinationAirport: string;
+  flightCode: string;
+  luggageIncluded: boolean;
+  originAirport: string;
+  price: number;
+  provider: string;
+};
+
 export type TravelPlan = {
   id: number;
   userId: number;
@@ -13,4 +40,6 @@ export type TravelPlan = {
   savedActivities?: any[];
   savedPois?: any[];
   savedTransports?: any[];
+  savedFlights?: SavedFlight[];
+  savedRoutes?: any[];
 };

@@ -34,3 +34,27 @@ export async function searchFlights(
 
   return response.json();
 }
+
+export async function addFlightToTravel(
+  userId: number,
+  travelId: number,
+  payload: unknown
+) {
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}/flights/${userId}/${travelId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Could not add flight to travel.");
+  }
+
+  return response.json();
+}

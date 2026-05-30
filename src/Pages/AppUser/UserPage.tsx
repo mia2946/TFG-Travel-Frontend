@@ -10,6 +10,7 @@ import AccommodationsForm from "../../components/user/AccommodationsForm";
 import ActivitiesForm from "../../components/user/ActivitiesForm";
 import TransportForm from "../../components/user/TransportForm";
 import PointsOfInterestForm from "../../components/user/PointsOfInterestForm";
+import RoutesForm from "../../components/user/RoutesForm";
 import TravelPlans from "../../components/user/TravelPlans";
 
 type TabKey =
@@ -18,6 +19,7 @@ type TabKey =
   | "accommodations"
   | "activities"
   | "transport"
+  | "routes"
   | "pois";
 
 type SearchTabKey = Exclude<TabKey, "travels">;
@@ -33,16 +35,15 @@ const tabs: TabItem[] = [
   { key: "accommodations", label: "Accommodations", icon: "bi-building" },
   { key: "activities", label: "Activities", icon: "bi-map" },
   { key: "transport", label: "Transport", icon: "bi-bus-front" },
+  { key: "routes", label: "Routes", icon: "bi-signpost-2" },
   { key: "pois", label: "Points of Interest", icon: "bi-geo-alt" },
 ];
 
 export default function UserPage() {
   const [user, setUser] = useState<User | null>(null);
 
-  // 🔥 FIX: activeTab must allow "travels"
   const [activeTab, setActiveTab] = useState<TabKey>("flights");
 
-  // 🔥 remember last search tab
   const [lastSearchTab, setLastSearchTab] =
     useState<SearchTabKey>("flights");
 
@@ -131,7 +132,7 @@ export default function UserPage() {
                         }`}
                         onClick={() => {
                           setActiveTab(tab.key);
-                          setLastSearchTab(tab.key); 
+                          setLastSearchTab(tab.key);
                         }}
                         title={tab.label}
                         aria-label={tab.label}
@@ -145,11 +146,10 @@ export default function UserPage() {
                 <div className="col-12 col-lg-9">
                   <div className="p-3 rounded bg-secondary bg-opacity-10">
                     {activeTab === "flights" && <FlightsForm />}
-                    {activeTab === "accommodations" && (
-                      <AccommodationsForm />
-                    )}
+                    {activeTab === "accommodations" && <AccommodationsForm />}
                     {activeTab === "activities" && <ActivitiesForm />}
                     {activeTab === "transport" && <TransportForm />}
+                    {activeTab === "routes" && <RoutesForm />}
                     {activeTab === "pois" && <PointsOfInterestForm />}
                   </div>
                 </div>

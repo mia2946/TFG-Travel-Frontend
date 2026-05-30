@@ -1,40 +1,89 @@
 import { API_CONFIG } from "../config/api";
-import { apiRequest } from "./apiClient";
-import type { TransportResult, TransportSearchRequest } from "../types/search";
 
-export async function searchTransport(
-  request: TransportSearchRequest
-): Promise<TransportResult[]> {
-  const endpoint = API_CONFIG.transport;
-  const url = `${API_CONFIG.baseUrl}${endpoint.path}`;
+export type TransportRouteRequest = {
+  startLatitude: number;
+  startLongitude: number;
+  endLatitude: number;
+  endLongitude: number;
+};
 
-  return apiRequest<TransportResult[]>(url, {
-    method: endpoint.method,
-    body: request,
-  });
-}
-
-export async function searchTransportPois(
-  lat: string | number,
-  lon: string | number,
-  radius: string | number
-): Promise<any[]> {
-  const params = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lon),
-    radius: String(radius),
-  });
-
-  const data = await apiRequest<any>(
-    `${API_CONFIG.baseUrl}/pois/v2/transport-pois?${params.toString()}`,
+export async function searchPublicTransportRoute(
+  request: TransportRouteRequest
+) {
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}/transport/routes/public`,
     {
-      method: "GET",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(request),
     }
   );
 
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.elements)) return data.elements;
-  if (Array.isArray(data?.features)) return data.features;
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Could not search public transport route.");
+  }
 
-  return [];
+  const data = await response.json();
+
+  if (!data?.features || data.features.length === 0) {
+    throw new Error("No public transport route found.");
+  }
+
+  return data;
+}
+
+export async function searchTransportPois(
+  lat: number | string,
+  lon: number | string,
+  radiusMeters: number
+) {
+  const url = new URL(`${API_CONFIG.baseUrl}/pois/transport`);
+
+  url.searchParams.append("lat", String(lat));
+  url.searchParams.append("lon", String(lon));
+  url.searchParams.append("radiusMeters", String(radiusMeters));
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Could not retrieve transport POIs.");
+  }
+
+  const data = await response.json();
+
+  return data?.data || [];
+}
+
+export async function addTransportRouteToTravel(
+  userId: number,
+  travelId: number,
+  payload: unknown
+) {
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}/transport/${userId}/${travelId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Could not add transport route to travel.");
+  }
+
+  return response.json();
 }

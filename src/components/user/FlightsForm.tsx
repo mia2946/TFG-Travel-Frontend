@@ -1,8 +1,11 @@
 import { useState } from "react";
 import CityAutocompleteInput from "./CityAutocompleteInput";
+import TravelPlanSelector from "./TravelPlanSelector";
 import { resolveCityCoordinates } from "../../services/locationService";
 import { searchFlights } from "../../services/flightService";
 import { getAirportsByCoordinates } from "../../services/airportService";
+import { addFlightToTravel } from "../../services/flightService";
+import { getSession } from "../../services/authService";
 import type {
   FlightOption,
   FlightSearchRequest,
@@ -15,8 +18,14 @@ type FlightFormState = {
 
   originLat?: string;
   originLon?: string;
+  originCity?: string;
+  originCountry?: string;
+  originCountryCode?: string;
   destinationLat?: string;
   destinationLon?: string;
+  destinationCity?: string;
+  destinationCountry?: string;
+  destinationCountryCode?: string;
 
   departureId: string;
   arrivalId: string;
@@ -70,9 +79,13 @@ export default function FlightsForm() {
     deepSearch: false,
   });
 
+  const [selectedTravelId, setSelectedTravelId] = useState<number | "">("");
+  const [savingFlightId, setSavingFlightId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<FlightsApiResponse | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -105,6 +118,7 @@ export default function FlightsForm() {
     e.preventDefault();
 
     setError("");
+    setSuccess("");
     setResults(null);
     setLoading(true);
 
@@ -169,8 +183,6 @@ export default function FlightsForm() {
         deepSearch: form.deepSearch,
       };
 
-      console.log("FLIGHTS SEARCH:", request);
-
       const data = await searchFlights(request);
       setResults(data);
     } catch (err) {
@@ -185,12 +197,94 @@ export default function FlightsForm() {
     }
   };
 
+  const handleAddFlightToTravel = async (
+    flight: FlightOption,
+    index: number
+  ) => {
+    if (!selectedTravelId) {
+      setError("Please select a travel plan first.");
+      return;
+    }
+
+    const session = getSession();
+    const userId = session?.id;
+
+    if (!userId) {
+      setError("User session not found.");
+      return;
+    }
+
+    const firstLeg = flight.flights?.[0];
+    const lastLeg = flight.flights?.[flight.flights.length - 1];
+
+    const flightId = `${firstLeg?.flight_number || "flight"}-${index}`;
+
+    try {
+      setError("");
+      setSuccess("");
+      setSavingFlightId(flightId);
+
+      const toISOString = (dateTimeStr?: string) => {
+        if (!dateTimeStr) return new Date().toISOString();
+        return new Date(dateTimeStr.replace(" ", "T")).toISOString();
+      };
+
+      await addFlightToTravel(userId, Number(selectedTravelId), {
+        origin: {
+          cityName: form.originCity || form.origin.split(", ")[0],
+          country: form.originCountry || form.origin.split(", ").slice(1).join(", "),
+          countryCode: form.originCountryCode || "",
+          latitude: Number(form.originLat) || 0,
+          longitude: Number(form.originLon) || 0,
+          description: "",
+        },
+        destination: {
+          cityName: form.destinationCity || form.destination.split(", ")[0],
+          country: form.destinationCountry || form.destination.split(", ").slice(1).join(", "),
+          countryCode: form.destinationCountryCode || "",
+          latitude: Number(form.destinationLat) || 0,
+          longitude: Number(form.destinationLon) || 0,
+          description: "",
+        },
+        transport: {
+          transportType: "FLIGHT",
+          provider: firstLeg?.airline || "",
+          departureTime: toISOString(firstLeg?.departure_airport?.time),
+          arrivalTime: toISOString(lastLeg?.arrival_airport?.time),
+          price: flight.price || 0,
+          currency: form.currency || "EUR",
+          apiProvider: "GOOGLE_FLIGHTS",
+        },
+        details: {
+          flightCode: firstLeg?.flight_number || "",
+          airline: firstLeg?.airline || "",
+          originAirport: firstLeg?.departure_airport?.id || "",
+          destinationAirport: lastLeg?.arrival_airport?.id || "",
+          cabinClass: firstLeg?.travel_class || "",
+          luggageIncluded: false,
+        },
+      });
+
+      setSuccess("Flight added to the travel plan.");
+    } catch (err) {
+      console.error(err);
+      setError("Flight could not be added to the travel plan.");
+    } finally {
+      setSavingFlightId(null);
+    }
+  };
+
   const totalResults =
     (results?.best_flights?.length || 0) +
     (results?.other_flights?.length || 0);
 
   return (
     <>
+      <TravelPlanSelector
+        selectedTravelId={selectedTravelId}
+        onTravelSelected={setSelectedTravelId}
+      />
+
       <form onSubmit={handleSubmit}>
         <h4 className="mb-3 text-center">Search Flights</h4>
 
@@ -214,10 +308,13 @@ export default function FlightsForm() {
           icon="bi-airplane"
           value={form.origin}
           required
-          onCityChange={({ value, lat, lon }) => {
+          onCityChange={({ value, cityName, country, countryCode, lat, lon }) => {
             setForm((prev) => ({
               ...prev,
               origin: value,
+              originCity: cityName,
+              originCountry: country,
+              originCountryCode: countryCode,
               originLat: lat,
               originLon: lon,
             }));
@@ -230,10 +327,13 @@ export default function FlightsForm() {
           icon="bi-geo-alt"
           value={form.destination}
           required
-          onCityChange={({ value, lat, lon }) => {
+          onCityChange={({ value, cityName, country, countryCode, lat, lon }) => {
             setForm((prev) => ({
               ...prev,
               destination: value,
+              destinationCity: cityName,
+              destinationCountry: country,
+              destinationCountryCode: countryCode,
               destinationLat: lat,
               destinationLon: lon,
             }));
@@ -356,6 +456,7 @@ export default function FlightsForm() {
       </form>
 
       {error && <div className="alert alert-danger mt-3">{error}</div>}
+      {success && <div className="alert alert-success mt-3">{success}</div>}
 
       {results && totalResults === 0 && !error && (
         <div className="alert alert-warning mt-3">
@@ -377,6 +478,9 @@ export default function FlightsForm() {
                     key={`best-flight-${index}`}
                     flight={flight}
                     index={index}
+                    selectedTravelId={selectedTravelId}
+                    savingFlightId={savingFlightId}
+                    onAddToTravel={handleAddFlightToTravel}
                   />
                 ))}
               </div>
@@ -393,6 +497,9 @@ export default function FlightsForm() {
                     key={`other-flight-${index}`}
                     flight={flight}
                     index={index}
+                    selectedTravelId={selectedTravelId}
+                    savingFlightId={savingFlightId}
+                    onAddToTravel={handleAddFlightToTravel}
                   />
                 ))}
               </div>
@@ -407,25 +514,27 @@ export default function FlightsForm() {
 function FlightCard({
   flight,
   index,
+  selectedTravelId,
+  savingFlightId,
+  onAddToTravel,
 }: {
   flight: FlightOption;
   index: number;
+  selectedTravelId: number | "";
+  savingFlightId: string | null;
+  onAddToTravel: (flight: FlightOption, index: number) => void;
 }) {
   const firstLeg = flight.flights?.[0];
   const lastLeg = flight.flights?.[flight.flights.length - 1];
+  const flightId = `${firstLeg?.flight_number || "flight"}-${index}`;
 
   const formatDuration = (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
 
-    if (hours === 0) {
-      return `${mins}m`;
-    }
-
-    if (mins === 0) {
-      return `${hours}h`;
-    }
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
 
     return `${hours}h ${mins}m`;
   };
@@ -451,7 +560,7 @@ function FlightCard({
       : "Flight route";
 
   return (
-    <div className="col-12 col-md-6" key={index}>
+    <div className="col-12 col-md-6">
       <div className="card bg-dark text-light border-secondary h-100 shadow-sm">
         <div className="card-body">
           <div className="d-flex align-items-center justify-content-between mb-3">
@@ -517,7 +626,8 @@ function FlightCard({
 
           {firstLeg?.departure_airport?.time && (
             <p className="mb-2">
-              <strong>Date:</strong> {formatDate(firstLeg.departure_airport.time)}
+              <strong>Date:</strong>{" "}
+              {formatDate(firstLeg.departure_airport.time)}
             </p>
           )}
 
@@ -611,6 +721,15 @@ function FlightCard({
               ))}
             </div>
           )}
+
+          <button
+            type="button"
+            className="btn btn-success btn-sm mt-3"
+            disabled={!selectedTravelId || savingFlightId === flightId}
+            onClick={() => onAddToTravel(flight, index)}
+          >
+            {savingFlightId === flightId ? "Adding..." : "Add to travel"}
+          </button>
         </div>
       </div>
     </div>

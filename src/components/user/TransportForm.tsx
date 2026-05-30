@@ -1,16 +1,17 @@
 import { useState } from "react";
 import CityAutocompleteInput from "./CityAutocompleteInput";
+import TravelPlanSelector from "./TravelPlanSelector";
 import { resolveCityCoordinates } from "../../services/locationService";
 import {
-  searchTransport,
+  searchPublicTransportRoute,
   searchTransportPois,
+  addTransportRouteToTravel,
 } from "../../services/transportService";
-import type {
-  TransportResult,
-  TransportSearchRequest,
-} from "../../types/search";
+import { getSession } from "../../services/authService";
 
-type TransportFormState = TransportSearchRequest & {
+type TransportFormState = {
+  origin: string;
+  destination: string;
   originLat?: string;
   originLon?: string;
   destinationLat?: string;
@@ -24,6 +25,51 @@ type TransportPoiFormState = {
   radius: number;
 };
 
+type RouteStep = {
+  distance?: number;
+  time?: number;
+  instruction?: {
+    text?: string;
+  };
+};
+
+type RouteLeg = {
+  distance?: number;
+  time?: number;
+  steps?: RouteStep[];
+};
+
+type RouteFeature = {
+  geometry?: {
+    type?: string;
+    coordinates?: number[][][];
+  };
+  properties?: {
+    distance?: number;
+    distance_units?: string;
+    time?: number;
+    mode?: string;
+    units?: string;
+    legs?: RouteLeg[];
+  };
+};
+
+type TransportRouteResponse = {
+  type?: string;
+  features?: RouteFeature[];
+  properties?: {
+    mode?: string;
+    units?: string;
+  };
+};
+
+type LastRouteRequest = {
+  startLatitude: number;
+  startLongitude: number;
+  endLatitude: number;
+  endLongitude: number;
+};
+
 export default function TransportForm() {
   const [form, setForm] = useState<TransportFormState>({
     origin: "",
@@ -32,8 +78,6 @@ export default function TransportForm() {
     originLon: "",
     destinationLat: "",
     destinationLon: "",
-    date: "",
-    transportType: "",
   });
 
   const [poiForm, setPoiForm] = useState<TransportPoiFormState>({
@@ -43,25 +87,23 @@ export default function TransportForm() {
     radius: 2000,
   });
 
+  const [selectedTravelId, setSelectedTravelId] = useState<number | "">("");
+
   const [loadingTransport, setLoadingTransport] = useState(false);
   const [loadingPois, setLoadingPois] = useState(false);
+  const [savingRoute, setSavingRoute] = useState(false);
 
-  const [transportResults, setTransportResults] = useState<TransportResult[]>([]);
+  const [transportRoute, setTransportRoute] =
+    useState<TransportRouteResponse | null>(null);
+
+  const [lastRouteRequest, setLastRouteRequest] =
+    useState<LastRouteRequest | null>(null);
+
   const [transportPoiResults, setTransportPoiResults] = useState<any[]>([]);
 
   const [transportError, setTransportError] = useState("");
   const [poiError, setPoiError] = useState("");
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const [success, setSuccess] = useState("");
 
   const handlePoiChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -74,11 +116,40 @@ export default function TransportForm() {
     }));
   };
 
+  const formatDuration = (seconds?: number) => {
+    if (!seconds && seconds !== 0) return "";
+
+    const minutes = Math.round(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (hours === 0) return `${minutes} min`;
+    if (remainingMinutes === 0) return `${hours} h`;
+
+    return `${hours} h ${remainingMinutes} min`;
+  };
+
+  const formatDistance = (meters?: number) => {
+    if (!meters && meters !== 0) return "";
+
+    if (meters < 1000) {
+      return `${Math.round(meters)} m`;
+    }
+
+    return `${(meters / 1000).toFixed(2)} km`;
+  };
+
+  const getMainRoute = () => {
+    return transportRoute?.features?.[0];
+  };
+
   const handleTransportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setTransportError("");
-    setTransportResults([]);
+    setSuccess("");
+    setTransportRoute(null);
+    setLastRouteRequest(null);
     setLoadingTransport(true);
 
     try {
@@ -94,25 +165,77 @@ export default function TransportForm() {
         form.destinationLon
       );
 
-      const finalForm = {
-        ...form,
-        origin: originCoords.destination,
-        originLat: originCoords.lat,
-        originLon: originCoords.lon,
-        destination: destinationCoords.destination,
-        destinationLat: destinationCoords.lat,
-        destinationLon: destinationCoords.lon,
+      const routeRequest: LastRouteRequest = {
+        startLatitude: Number(originCoords.lat),
+        startLongitude: Number(originCoords.lon),
+        endLatitude: Number(destinationCoords.lat),
+        endLongitude: Number(destinationCoords.lon),
       };
 
-      console.log("TRANSPORT SEARCH:", finalForm);
+      const data = await searchPublicTransportRoute(routeRequest);
 
-      const data = await searchTransport(finalForm);
-      setTransportResults(data);
+      setLastRouteRequest(routeRequest);
+      setTransportRoute(data);
     } catch (err) {
       console.error(err);
-      setTransportError("Transport results could not be retrieved.");
+      setTransportError(
+        err instanceof Error
+          ? err.message
+          : "Transport route could not be retrieved."
+      );
     } finally {
       setLoadingTransport(false);
+    }
+  };
+
+  const handleAddRouteToTravel = async () => {
+    if (!selectedTravelId) {
+      setTransportError("Please select a travel plan first.");
+      return;
+    }
+
+    if (!transportRoute || !lastRouteRequest) {
+      setTransportError("Please search a route first.");
+      return;
+    }
+
+    const session = getSession();
+    const userId = session?.id;
+
+    if (!userId) {
+      setTransportError("User session not found.");
+      return;
+    }
+
+    const mainRoute = getMainRoute();
+
+    try {
+      setTransportError("");
+      setSuccess("");
+      setSavingRoute(true);
+
+      await addTransportRouteToTravel(userId, Number(selectedTravelId), {
+        origin: form.origin,
+        destination: form.destination,
+        startLatitude: lastRouteRequest.startLatitude,
+        startLongitude: lastRouteRequest.startLongitude,
+        endLatitude: lastRouteRequest.endLatitude,
+        endLongitude: lastRouteRequest.endLongitude,
+        type: "PUBLIC_TRANSPORT",
+        mode: mainRoute?.properties?.mode || "transit",
+        distance: mainRoute?.properties?.distance || 0,
+        duration: mainRoute?.properties?.time || 0,
+        steps: mainRoute?.properties?.legs?.[0]?.steps || [],
+        geometry: mainRoute?.geometry || null,
+        rawData: transportRoute,
+      });
+
+      setSuccess("Transport route added to the travel plan.");
+    } catch (err) {
+      console.error(err);
+      setTransportError("Transport route could not be added to the travel plan.");
+    } finally {
+      setSavingRoute(false);
     }
   };
 
@@ -130,15 +253,6 @@ export default function TransportForm() {
         poiForm.lon
       );
 
-      const finalPoiForm = {
-        ...poiForm,
-        destination: coords.destination,
-        lat: coords.lat,
-        lon: coords.lon,
-      };
-
-      console.log("TRANSPORT POIS SEARCH:", finalPoiForm);
-
       const data = await searchTransportPois(
         coords.lat,
         coords.lon,
@@ -154,11 +268,18 @@ export default function TransportForm() {
     }
   };
 
+  const mainRoute = getMainRoute();
+  const routeSteps = mainRoute?.properties?.legs?.[0]?.steps || [];
+
   return (
     <>
-      {/* NORMAL TRANSPORT SEARCH */}
+      <TravelPlanSelector
+        selectedTravelId={selectedTravelId}
+        onTravelSelected={setSelectedTravelId}
+      />
+
       <form onSubmit={handleTransportSubmit}>
-        <h4 className="mb-3 text-center">Search Transport</h4>
+        <h4 className="mb-3 text-center">Search Public Transport Route</h4>
 
         <CityAutocompleteInput
           name="origin"
@@ -192,41 +313,12 @@ export default function TransportForm() {
           }}
         />
 
-        <div className="form-floating input-icon mb-3">
-          <i className="bi bi-calendar-event"></i>
-          <input
-            type="date"
-            className="form-control"
-            name="date"
-            placeholder="Date"
-            value={form.date || ""}
-            onChange={handleChange}
-          />
-          <label>Date</label>
-        </div>
-
-        <div className="form-floating input-icon mb-3">
-          <i className="bi bi-bus-front"></i>
-          <select
-            className="form-select"
-            name="transportType"
-            value={form.transportType || ""}
-            onChange={handleChange}
-          >
-            <option value="">All</option>
-            <option value="train">Train</option>
-            <option value="bus">Bus</option>
-            <option value="car">Car</option>
-          </select>
-          <label>Transport Type</label>
-        </div>
-
         <button
           type="submit"
           className="btn btn-primary w-100"
           disabled={loadingTransport}
         >
-          {loadingTransport ? "Searching..." : "Search Transport"}
+          {loadingTransport ? "Searching..." : "Search Public Transport Route"}
         </button>
       </form>
 
@@ -234,18 +326,72 @@ export default function TransportForm() {
         <div className="alert alert-danger mt-3">{transportError}</div>
       )}
 
-      {transportResults.length > 0 && (
+      {success && <div className="alert alert-success mt-3">{success}</div>}
+
+      {transportRoute && mainRoute && (
         <div className="mt-4">
-          <h5>Transport Results</h5>
-          <pre className="bg-dark text-light p-3 rounded">
-            {JSON.stringify(transportResults, null, 2)}
-          </pre>
+          <h5 className="mb-3">Transport Route</h5>
+
+          <div className="card bg-dark text-light border-secondary">
+            <div className="card-body">
+              <h6 className="card-title text-primary">
+                <i className="bi bi-signpost-split me-2"></i>
+                {form.origin} → {form.destination}
+              </h6>
+
+              <p className="mb-1">
+                <strong>Mode:</strong> {mainRoute.properties?.mode || "Transit"}
+              </p>
+
+              <p className="mb-1">
+                <strong>Distance:</strong>{" "}
+                {formatDistance(mainRoute.properties?.distance)}
+              </p>
+
+              <p className="mb-1">
+                <strong>Duration:</strong>{" "}
+                {formatDuration(mainRoute.properties?.time)}
+              </p>
+
+              <p className="mb-3">
+                <strong>Steps:</strong> {routeSteps.length}
+              </p>
+
+              {routeSteps.length > 0 && (
+                <div className="mt-3">
+                  <h6 className="text-primary">Route Instructions</h6>
+
+                  <ol className="mb-0 text-start">
+                    {routeSteps.map((step, index) => (
+                      <li key={`route-step-${index}`} className="mb-2">
+                        <div>{step.instruction?.text || "Continue"}</div>
+
+                        <small className="text-secondary">
+                          {formatDistance(step.distance)}
+                          {step.time !== undefined &&
+                            ` · ${formatDuration(step.time)}`}
+                        </small>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-success btn-sm mt-3"
+                disabled={!selectedTravelId || savingRoute}
+                onClick={handleAddRouteToTravel}
+              >
+                {savingRoute ? "Adding..." : "Add route to travel"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       <hr className="my-4 border-secondary" />
 
-      {/* TRANSPORT POIS SEARCH */}
       <form onSubmit={handleTransportPoisSubmit}>
         <h4 className="mb-3 text-center">Search Nearby Transport POIs</h4>
 
