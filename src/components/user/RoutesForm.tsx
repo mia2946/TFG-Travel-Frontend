@@ -293,6 +293,21 @@ export default function RoutesForm() {
         </div>
       </div>
 
+      {/* Guidance when no plan is selected */}
+      {!selectedTravel && !loadingPlans && (
+        <div className="alert alert-info d-flex align-items-start gap-2">
+          <i className="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+          <div>
+            <strong>How routes work</strong>
+            <p className="mb-0 mt-1">
+              Select a travel plan above to search routes between its saved locations
+              (accommodations, activities, POIs, and airports). You need at least two
+              saved locations with coordinates to calculate a route.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Route Search — only when a plan is selected */}
       {selectedTravel && (
         <div className="card bg-dark text-light border-secondary">
@@ -396,21 +411,21 @@ export default function RoutesForm() {
                       </h6>
                       <div className="row g-2">
                         <div className="col-6">
-                          <small className="text-muted">Distance</small>
+                          <small>Distance</small>
                           <p className="mb-0 fw-semibold">
                             {formatDistance(route.distanceMeters)}
                           </p>
                         </div>
                         <div className="col-6">
-                          <small className="text-muted">Duration</small>
+                          <small>Duration</small>
                           <p className="mb-0 fw-semibold">
                             {formatDuration(route.durationSeconds)}
                           </p>
                         </div>
                         <div className="col-12 mt-2">
-                          <small className="text-muted">From</small>
+                          <small>From</small>
                           <p className="mb-0">{origin.label}</p>
-                          <small className="text-muted">To</small>
+                          <small>To</small>
                           <p className="mb-0">{destination.label}</p>
                         </div>
                       </div>
@@ -439,7 +454,7 @@ export default function RoutesForm() {
                             >
                               <div className="ms-2 me-auto">
                                 <div>{step.instruction}</div>
-                                <small className="text-muted">
+                                <small>
                                   {formatDistance(step.distanceMeters)} ·{" "}
                                   {formatDuration(step.durationSeconds)}
                                 </small>

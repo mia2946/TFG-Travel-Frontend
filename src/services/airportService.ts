@@ -41,7 +41,7 @@ export async function getAirportsByCoordinates(
   lat: number,
   lon: number
 ): Promise<AirportResponse[]> {
-  const url = new URL(`${API_CONFIG.baseUrl}/api/airports/search`);
+  const url = new URL(`${API_CONFIG.baseUrl}${API_CONFIG.airports.path}`);
 
   url.searchParams.append("lat", String(lat));
   url.searchParams.append("lon", String(lon));

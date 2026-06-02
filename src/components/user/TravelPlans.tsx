@@ -77,7 +77,7 @@ function StoredRouteCard({ route }: { route: StoredRoute }) {
         <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
             <span className="badge bg-primary me-2">{route.apiProvider}</span>
-            <span className="text-muted small">Route #{route.id}</span>
+            <span className="small">Route #{route.id}</span>
           </div>
           <div className="d-flex gap-3">
             <span>
@@ -94,13 +94,13 @@ function StoredRouteCard({ route }: { route: StoredRoute }) {
         {/* Coordinates */}
         <div className="row g-2 mb-3">
           <div className="col-12 col-md-6">
-            <small className="text-muted d-block">Origin</small>
+            <small className="d-block">Origin</small>
             <code className="text-light small">
               {route.startLat.toFixed(6)}, {route.startLon.toFixed(6)}
             </code>
           </div>
           <div className="col-12 col-md-6">
-            <small className="text-muted d-block">Destination</small>
+            <small className="d-block">Destination</small>
             <code className="text-light small">
               {route.endLat.toFixed(6)}, {route.endLon.toFixed(6)}
             </code>
@@ -141,7 +141,7 @@ function StoredRouteCard({ route }: { route: StoredRoute }) {
                 >
                   <div className="ms-2 me-auto">
                     <div>{step.instructionText}</div>
-                    <small className="text-muted">
+                    <small>
                       {formatDistance(step.distanceMeters)} ·{" "}
                       {formatDuration(step.timeSeconds)}
                     </small>

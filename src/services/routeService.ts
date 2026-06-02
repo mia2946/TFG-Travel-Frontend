@@ -19,8 +19,8 @@ type BackendRouteRequest = {
 export async function searchRoute(
   request: BackendRouteRequest
 ): Promise<RouteSearchResult> {
-  const response = await fetch(`${API_CONFIG.baseUrl}/transport/routes/public`, {
-    method: "POST",
+  const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.transport.path}`, {
+    method: API_CONFIG.transport.method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
@@ -73,8 +73,8 @@ export async function saveRoute(
   if (!user) throw new Error("User not logged");
 
   return apiRequest<SavedRoute>(
-    `${API_CONFIG.baseUrl}/routes/${user.id}/${travelId}`,
-    { method: "POST", body: payload }
+    `${API_CONFIG.baseUrl}${API_CONFIG.routes.path}/${user.id}/${travelId}`,
+    { method: API_CONFIG.routes.method, body: payload }
   );
 }
 
@@ -86,7 +86,7 @@ export async function getRoute(
   if (!user) throw new Error("User not logged");
 
   const response = await fetch(
-    `${API_CONFIG.baseUrl}/routes/${user.id}/${travelId}/${transportId}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.routes.path}/${user.id}/${travelId}/${transportId}`,
     { method: "GET", headers: { Accept: "application/json" } }
   );
 

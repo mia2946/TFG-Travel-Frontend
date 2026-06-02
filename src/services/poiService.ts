@@ -50,16 +50,16 @@ export async function searchPois(
   if (!request.poiType) {
     const [foodDrink, amenities, embassies] = await Promise.all([
       apiRequest<PoiResult[]>(
-        `${API_CONFIG.baseUrl}/pois/v2/food-drink/details?${params.toString()}`,
-        { method: "GET" }
+        `${API_CONFIG.baseUrl}${API_CONFIG.pois.foodDrink.path}?${params.toString()}`,
+        { method: API_CONFIG.pois.foodDrink.method }
       ),
       apiRequest<PoiResult[]>(
-        `${API_CONFIG.baseUrl}/pois/v2/amenities`,
-        { method: "POST", body }
+        `${API_CONFIG.baseUrl}${API_CONFIG.pois.amenities.path}`,
+        { method: API_CONFIG.pois.amenities.method, body }
       ),
       apiRequest<PoiResult[]>(
-        `${API_CONFIG.baseUrl}/pois/v2/embassies`,
-        { method: "POST", body }
+        `${API_CONFIG.baseUrl}${API_CONFIG.pois.embassies.path}`,
+        { method: API_CONFIG.pois.embassies.method, body }
       ),
     ]);
 
@@ -75,20 +75,20 @@ export async function searchPois(
   switch (group) {
     case "food_drink":
       return apiRequest<PoiResult[]>(
-        `${API_CONFIG.baseUrl}/pois/v2/food-drink/details?${params.toString()}`,
-        { method: "GET" }
+        `${API_CONFIG.baseUrl}${API_CONFIG.pois.foodDrink.path}?${params.toString()}`,
+        { method: API_CONFIG.pois.foodDrink.method }
       );
 
     case "amenities":
       return apiRequest<PoiResult[]>(
-        `${API_CONFIG.baseUrl}/pois/v2/amenities`,
-        { method: "POST", body }
+        `${API_CONFIG.baseUrl}${API_CONFIG.pois.amenities.path}`,
+        { method: API_CONFIG.pois.amenities.method, body }
       );
 
     case "embassies":
       return apiRequest<PoiResult[]>(
-        `${API_CONFIG.baseUrl}/pois/v2/embassies`,
-        { method: "POST", body }
+        `${API_CONFIG.baseUrl}${API_CONFIG.pois.embassies.path}`,
+        { method: API_CONFIG.pois.embassies.method, body }
       );
 
     default:

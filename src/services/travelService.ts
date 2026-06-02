@@ -3,9 +3,6 @@ import { getSession } from "./authService";
 import { API_CONFIG } from "../config/api";
 import { apiRequest } from "./apiClient";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const TRAVELS_PATH = "/travels";
-
 export async function getTravelPlans(): Promise<TravelPlan[]> {
   const user = getSession();
 
@@ -13,8 +10,8 @@ export async function getTravelPlans(): Promise<TravelPlan[]> {
     throw new Error("User not logged");
   }
 
-  const response = await fetch(`${API_BASE_URL}${TRAVELS_PATH}/${user.id}`, {
-    method: "GET",
+  const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.travels.path}/${user.id}`, {
+    method: API_CONFIG.travels.method,
     headers: {
       Accept: "application/json",
     },
@@ -35,7 +32,7 @@ export async function deleteTravelPlan(travelId: number): Promise<void> {
   }
 
   const response = await fetch(
-    `${API_BASE_URL}${TRAVELS_PATH}/${user.id}/${travelId}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.travels.path}/${user.id}/${travelId}`,
     {
       method: "DELETE",
     }
@@ -54,7 +51,7 @@ export async function createTravelPlan(name: string): Promise<TravelPlan> {
   }
 
   return apiRequest<TravelPlan>(
-    `${API_CONFIG.baseUrl}/travels/${user.id}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.travels.path}/${user.id}`,
     {
       method: "POST",
       body: {
@@ -79,9 +76,9 @@ export async function addPoiToTravel(
   }
 
   const response = await fetch(
-    `${API_CONFIG.baseUrl}/pois/${user.id}/${travelId}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.pois.save.path}/${user.id}/${travelId}`,
     {
-      method: "POST",
+      method: API_CONFIG.pois.save.method,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",

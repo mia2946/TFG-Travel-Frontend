@@ -4,7 +4,7 @@ import type { FlightSearchRequest, FlightsApiResponse } from "../types/search";
 export async function searchFlights(
   request: FlightSearchRequest
 ): Promise<FlightsApiResponse> {
-  const url = new URL(`${API_CONFIG.baseUrl}/api/flights/search`);
+  const url = new URL(`${API_CONFIG.baseUrl}${API_CONFIG.flights.path}`);
 
   url.searchParams.append("departureId", request.departureId);
   url.searchParams.append("arrivalId", request.arrivalId);
@@ -24,7 +24,7 @@ export async function searchFlights(
   url.searchParams.append("deepSearch", String(request.deepSearch ?? false));
 
   const response = await fetch(url.toString(), {
-    method: "GET",
+    method: API_CONFIG.flights.method,
   });
 
   if (!response.ok) {
@@ -41,9 +41,9 @@ export async function addFlightToTravel(
   payload: unknown
 ) {
   const response = await fetch(
-    `${API_CONFIG.baseUrl}/flights/${userId}/${travelId}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.flightsSave.path}/${userId}/${travelId}`,
     {
-      method: "POST",
+      method: API_CONFIG.flightsSave.method,
       headers: {
         "Content-Type": "application/json",
       },

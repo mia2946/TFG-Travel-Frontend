@@ -68,5 +68,35 @@ export const API_CONFIG = {
       path: getEnv("VITE_POIS_EMBASSIES_PATH", "/pois/v2/embassies"),
       method: getMethod("VITE_POIS_EMBASSIES_METHOD", "POST"),
     } satisfies EndpointConfig,
+
+    save: {
+      path: getEnv("VITE_POIS_SAVE_PATH", "/pois"),
+      method: getMethod("VITE_POIS_SAVE_METHOD", "POST"),
+    } satisfies EndpointConfig,
   },
+
+  airports: {
+    path: getEnv("VITE_AIRPORTS_PATH", "/api/airports/search"),
+    method: getMethod("VITE_AIRPORTS_METHOD", "GET"),
+  } satisfies EndpointConfig,
+
+  travels: {
+    path: getEnv("VITE_TRAVELS_PATH", "/travels"),
+    method: getMethod("VITE_TRAVELS_METHOD", "GET"),
+  } satisfies EndpointConfig,
+
+  routes: {
+    path: getEnv("VITE_ROUTES_PATH", "/routes"),
+    method: getMethod("VITE_ROUTES_METHOD", "POST"),
+  } satisfies EndpointConfig,
+
+  flightsSave: {
+    path: getEnv("VITE_FLIGHTS_SAVE_PATH", "/flights"),
+    method: getMethod("VITE_FLIGHTS_SAVE_METHOD", "POST"),
+  } satisfies EndpointConfig,
+
+  transportSave: {
+    path: getEnv("VITE_TRANSPORT_SAVE_PATH", "/transport"),
+    method: getMethod("VITE_TRANSPORT_SAVE_METHOD", "POST"),
+  } satisfies EndpointConfig,
 };

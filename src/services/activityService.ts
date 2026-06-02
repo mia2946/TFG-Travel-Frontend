@@ -40,9 +40,9 @@ export async function searchActivities(
   });
 
   const data = await apiRequest<GeoapifyFeatureCollection>(
-    `${API_CONFIG.baseUrl}/pois/v2/activities/geoapify?${params.toString()}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.activities.path}?${params.toString()}`,
     {
-      method: "GET",
+      method: API_CONFIG.activities.method,
     }
   );
 

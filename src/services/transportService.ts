@@ -11,9 +11,9 @@ export async function searchPublicTransportRoute(
   request: TransportRouteRequest
 ) {
   const response = await fetch(
-    `${API_CONFIG.baseUrl}/transport/routes/public`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.transport.path}`,
     {
-      method: "POST",
+      method: API_CONFIG.transport.method,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -41,14 +41,14 @@ export async function searchTransportPois(
   lon: number | string,
   radiusMeters: number
 ) {
-  const url = new URL(`${API_CONFIG.baseUrl}/pois/transport`);
+  const url = new URL(`${API_CONFIG.baseUrl}${API_CONFIG.pois.transport.path}`);
 
   url.searchParams.append("lat", String(lat));
   url.searchParams.append("lon", String(lon));
   url.searchParams.append("radiusMeters", String(radiusMeters));
 
   const response = await fetch(url.toString(), {
-    method: "GET",
+    method: API_CONFIG.pois.transport.method,
     headers: {
       Accept: "application/json",
     },
@@ -61,7 +61,11 @@ export async function searchTransportPois(
 
   const data = await response.json();
 
-  return data?.data || [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.elements)) return data.elements;
+  if (Array.isArray(data?.features)) return data.features;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
 }
 
 export async function addTransportRouteToTravel(
@@ -70,9 +74,9 @@ export async function addTransportRouteToTravel(
   payload: unknown
 ) {
   const response = await fetch(
-    `${API_CONFIG.baseUrl}/transport/${userId}/${travelId}`,
+    `${API_CONFIG.baseUrl}${API_CONFIG.transportSave.path}/${userId}/${travelId}`,
     {
-      method: "POST",
+      method: API_CONFIG.transportSave.method,
       headers: {
         "Content-Type": "application/json",
       },
