@@ -24,13 +24,22 @@ import {
   type PoiLike,
 } from "../../services/poiService";
 
+type PoiFormState = PoiSearchRequest & {
+  cityName?: string;
+  country?: string;
+  countryCode?: string;
+};
+
 export default function PointsOfInterestForm() {
-  const [form, setForm] = useState<PoiSearchRequest>({
+  const [form, setForm] = useState<PoiFormState>({
     destination: "",
     lat: "",
     lon: "",
     poiType: "",
     radius: 2000,
+    cityName: "",
+    country: "",
+    countryCode: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -122,8 +131,11 @@ export default function PointsOfInterestForm() {
           : null,
         rawData: {
           ...poi,
-          searchDestination: form.destination,
-          searchCountry: "Spain",
+          searchDestination: form.cityName || form.destination.split(", ")[0] || form.destination,
+          searchCountry: form.country || (form.destination.includes(", ") ? form.destination.split(", ").slice(1).join(", ") : ""),
+          searchCountryCode: form.countryCode || "",
+          searchLat: form.lat,
+          searchLon: form.lon,
         },
       });
       setSuccess(`${getPoiName(poi)} added to the travel plan.`);
@@ -268,10 +280,13 @@ export default function PointsOfInterestForm() {
           icon="bi-geo-alt"
           value={form.destination}
           required
-          onCityChange={({ value, lat, lon }) => {
+          onCityChange={({ value, cityName, country, countryCode, lat, lon }) => {
             setForm((prev) => ({
               ...prev,
               destination: value,
+              cityName,
+              country,
+              countryCode,
               lat,
               lon,
             }));

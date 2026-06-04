@@ -85,6 +85,8 @@ export type AccommodationSearchRequest = {
   checkIn: string;
   checkOut: string;
   guests: number;
+  radius?: number;
+  limit?: number;
 };
 
 export type ActivitySearchRequest = {
@@ -116,7 +118,39 @@ export type PoiSearchRequest = {
 };
 
 export type FlightResult = Record<string, unknown>;
-export type AccommodationResult = Record<string, unknown>;
+
+export type AccommodationResult = {
+  type?: string;
+  geometry?: {
+    type?: string;
+    coordinates?: number[];
+  };
+  properties?: {
+    name?: string;
+    formatted?: string;
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    country?: string;
+    categories?: string[];
+    website?: string;
+    phone?: string;
+    opening_hours?: string;
+    rating?: number;
+    price_level?: number;
+    datasource?: { sourcename?: string };
+  };
+  // flat-format fallback fields
+  name?: string;
+  formatted?: string;
+  address?: string;
+  categories?: string[];
+  website?: string;
+  phone?: string;
+  rating?: number;
+  lat?: number;
+  lon?: number;
+};
 //export type ActivityResult = Record<string, unknown>;
 export type ActivityResult = {
   type: string;

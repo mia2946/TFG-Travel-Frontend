@@ -1,20 +1,29 @@
 import { useState } from "react";
 import CityAutocompleteInput from "./CityAutocompleteInput";
 import TravelPlanSelector from "./TravelPlanSelector";
-import { resolveCityCoordinates } from "../../services/locationService";
+import { searchCities } from "../../services/locationService";
 import { searchActivities } from "../../services/activityService";
-import { addPoiToTravel } from "../../services/travelService";
+import { addActivityToTravel } from "../../services/travelService";
 import type {
   ActivityResult,
   ActivitySearchRequest,
 } from "../../types/search";
 
+type ActivityFormState = ActivitySearchRequest & {
+  cityName?: string;
+  country?: string;
+  countryCode?: string;
+};
+
 export default function ActivitiesForm() {
-  const [form, setForm] = useState<ActivitySearchRequest>({
+  const [form, setForm] = useState<ActivityFormState>({
     destination: "",
     lat: "",
     lon: "",
     activityType: "",
+    cityName: "",
+    country: "",
+    countryCode: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -55,17 +64,30 @@ export default function ActivitiesForm() {
     setLoading(true);
 
     try {
-      const coords = await resolveCityCoordinates(
-        form.destination,
-        form.lat,
-        form.lon
-      );
+      let resolvedForm = { ...form };
 
-      const data = await searchActivities({
-        ...form,
-        ...coords,
-      });
+      if (!resolvedForm.lat || !resolvedForm.lon) {
+        const matches = await searchCities(resolvedForm.destination);
 
+        if (matches.length === 0) {
+          setError("Activities cannot be found.");
+          return;
+        }
+
+        const best = matches[0];
+        resolvedForm = {
+          ...resolvedForm,
+          destination: `${best.name}, ${best.country}`,
+          cityName: best.name,
+          country: best.country,
+          countryCode: best.countryCode,
+          lat: best.lat,
+          lon: best.lon,
+        };
+        setForm(resolvedForm);
+      }
+
+      const data = await searchActivities(resolvedForm);
       setResults(data);
     } catch (err) {
       console.error(err);
@@ -100,7 +122,17 @@ export default function ActivitiesForm() {
       setSuccess("");
       setSavingActivityId(activityId);
 
-      await addPoiToTravel(Number(selectedTravelId), {
+      const destCityName =
+        form.cityName ||
+        form.destination.split(", ")[0] ||
+        form.destination;
+      const destCountry =
+        form.country ||
+        (form.destination.includes(", ")
+          ? form.destination.split(", ").slice(1).join(", ")
+          : "");
+
+      await addActivityToTravel(Number(selectedTravelId), {
         idPoi: null,
         externalId: activityId,
         source: props?.datasource?.sourcename || "GEOAPIFY",
@@ -118,10 +150,20 @@ export default function ActivitiesForm() {
         plannedDateTime: plannedDateTime
           ? new Date(plannedDateTime).toISOString()
           : null,
+        destination: {
+          cityName: destCityName,
+          country: destCountry,
+          countryCode: form.countryCode || "",
+          latitude: form.lat ? Number(form.lat) : null,
+          longitude: form.lon ? Number(form.lon) : null,
+        },
         rawData: {
           ...activity,
-          searchDestination: form.destination,
-          searchCountry: "Spain",
+          searchDestination: destCityName,
+          searchCountry: destCountry,
+          searchCountryCode: form.countryCode || "",
+          searchLat: form.lat,
+          searchLon: form.lon,
         },
       });
 
@@ -150,10 +192,13 @@ export default function ActivitiesForm() {
           icon="bi-map"
           value={form.destination}
           required
-          onCityChange={({ value, lat, lon }) => {
+          onCityChange={({ value, cityName, country, countryCode, lat, lon }) => {
             setForm((prev) => ({
               ...prev,
               destination: value,
+              cityName,
+              country,
+              countryCode,
               lat,
               lon,
             }));

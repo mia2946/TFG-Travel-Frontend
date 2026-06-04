@@ -8,11 +8,16 @@ import type {
 export async function searchAccommodations(
   request: AccommodationSearchRequest
 ): Promise<AccommodationResult[]> {
-  const endpoint = API_CONFIG.accommodations;
-  const url = `${API_CONFIG.baseUrl}${endpoint.path}`;
+  const params = new URLSearchParams({
+    lat: String(request.lat ?? ""),
+    lon: String(request.lon ?? ""),
+    radius: String(request.radius ?? 5000),
+    limit: String(request.limit ?? 20),
+  });
+
+  const url = `${API_CONFIG.baseUrl}${API_CONFIG.accommodations.path}?${params.toString()}`;
 
   return apiRequest<AccommodationResult[]>(url, {
-    method: endpoint.method,
-    body: request,
+    method: "GET",
   });
 }

@@ -1,10 +1,6 @@
 export type RouteMode = "walk" | "drive" | "transit";
 
-export type RoutePointType =
-  | "AIRPORT"
-  | "ACCOMMODATION"
-  | "ACTIVITY"
-  | "POI";
+export type RoutePointType = "AIRPORT" | "ACCOMMODATION" | "POI";
 
 export type RoutePoint = {
   id: string;

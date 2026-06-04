@@ -35,12 +35,22 @@ export const API_CONFIG = {
 
   accommodations: {
     path: getEnv("VITE_ACCOMMODATIONS_PATH", "/api/accommodations/search"),
-    method: getMethod("VITE_ACCOMMODATIONS_METHOD", "POST"),
+    method: getMethod("VITE_ACCOMMODATIONS_METHOD", "GET"),
+  } satisfies EndpointConfig,
+
+  accommodationsSave: {
+    path: getEnv("VITE_ACCOMMODATIONS_SAVE_PATH", "/accommodations"),
+    method: getMethod("VITE_ACCOMMODATIONS_SAVE_METHOD", "POST"),
   } satisfies EndpointConfig,
 
   activities: {
     path: getEnv("VITE_ACTIVITIES_PATH", "/api/activities/search"),
     method: getMethod("VITE_ACTIVITIES_METHOD", "POST"),
+  } satisfies EndpointConfig,
+
+  activitiesSave: {
+    path: getEnv("VITE_ACTIVITIES_SAVE_PATH", "/activities"),
+    method: getMethod("VITE_ACTIVITIES_SAVE_METHOD", "POST"),
   } satisfies EndpointConfig,
 
   transport: {
@@ -95,8 +105,4 @@ export const API_CONFIG = {
     method: getMethod("VITE_FLIGHTS_SAVE_METHOD", "POST"),
   } satisfies EndpointConfig,
 
-  transportSave: {
-    path: getEnv("VITE_TRANSPORT_SAVE_PATH", "/transport"),
-    method: getMethod("VITE_TRANSPORT_SAVE_METHOD", "POST"),
-  } satisfies EndpointConfig,
 };

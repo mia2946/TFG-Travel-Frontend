@@ -65,6 +65,66 @@ export async function createTravelPlan(name: string): Promise<TravelPlan> {
   );
 }
 
+export async function addAccommodationToTravel(
+  travelId: number,
+  accommodation: any
+): Promise<any> {
+  const user = getSession();
+
+  if (!user) {
+    throw new Error("User not logged");
+  }
+
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}${API_CONFIG.accommodationsSave.path}/${user.id}/${travelId}`,
+    {
+      method: API_CONFIG.accommodationsSave.method,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(accommodation),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Error saving accommodation: ${response.status} ${text}`);
+  }
+
+  return await response.json();
+}
+
+export async function addActivityToTravel(
+  travelId: number,
+  activity: any
+): Promise<any> {
+  const user = getSession();
+
+  if (!user) {
+    throw new Error("User not logged");
+  }
+
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}${API_CONFIG.activitiesSave.path}/${user.id}/${travelId}`,
+    {
+      method: API_CONFIG.activitiesSave.method,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(activity),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Error saving activity: ${response.status} ${text}`);
+  }
+
+  return await response.json();
+}
+
 export async function addPoiToTravel(
   travelId: number,
   poi: any

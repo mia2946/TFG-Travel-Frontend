@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TravelPlan } from "../../types/travel";
-import type { RoutePoint, RouteSearchResponse } from "../../types/route";
+import type { RoutePoint, RoutePointType, RouteSearchResponse } from "../../types/route";
 import { getTravelPlans, createTravelPlan } from "../../services/travelService";
 import { searchRoute, saveRoute } from "../../services/routeService";
 import TravelRouteMap from "../routes/TravelRouteMap";
+
+// ── group config ──────────────────────────────────────────────────────────────
+
+const GROUP_CONFIG: { type: RoutePointType; label: string; display: string }[] = [
+  { type: "AIRPORT",       label: "Airports",           display: "Airport"       },
+  { type: "ACCOMMODATION", label: "Accommodations",     display: "Accommodation" },
+  { type: "POI",           label: "Points of Interest", display: "POI"           },
+];
+
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function isValidCoordinate(lat?: number | null, lon?: number | null): boolean {
   return (
@@ -33,12 +43,21 @@ function formatDuration(seconds: number): string {
 
 function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
   const points: RoutePoint[] = [];
+  const seen = new Set<string>();
 
+  function addPoint(point: RoutePoint) {
+    const key = `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    points.push(point);
+  }
+
+  // ── Accommodations ────────────────────────────────────────────────────────
   travel.savedAccommodations?.forEach((item: any) => {
     const lat = Number(item.latitude ?? item.lat);
     const lon = Number(item.longitude ?? item.lon ?? item.lng);
     if (!isValidCoordinate(lat, lon)) return;
-    points.push({
+    addPoint({
       id: `ACCOMMODATION-${item.id ?? item.idAccommodation ?? item.externalId}`,
       label: item.name ?? item.hotelName ?? "Accommodation",
       type: "ACCOMMODATION",
@@ -48,25 +67,12 @@ function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
     });
   });
 
-  travel.savedActivities?.forEach((item: any) => {
-    const lat = Number(item.latitude ?? item.lat);
-    const lon = Number(item.longitude ?? item.lon ?? item.lng);
-    if (!isValidCoordinate(lat, lon)) return;
-    points.push({
-      id: `ACTIVITY-${item.id ?? item.idActivity ?? item.externalId}`,
-      label: item.name ?? item.title ?? "Activity",
-      type: "ACTIVITY",
-      latitude: lat,
-      longitude: lon,
-      address: item.address,
-    });
-  });
-
+  // ── POIs (restaurants, cafes, luggage lockers, etc.) ─────────────────────
   travel.savedPois?.forEach((item: any) => {
     const lat = Number(item.latitude ?? item.lat);
     const lon = Number(item.longitude ?? item.lon ?? item.lng);
     if (!isValidCoordinate(lat, lon)) return;
-    points.push({
+    addPoint({
       id: `POI-${item.id ?? item.idPoi ?? item.externalId}`,
       label: item.name ?? "POI",
       type: "POI",
@@ -76,6 +82,7 @@ function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
     });
   });
 
+  // ── Airports (origin + destination from saved transports/flights) ─────────
   travel.savedTransports?.forEach((item: any) => {
     const originLat = Number(
       item.originLatitude ?? item.departureLatitude ?? item.fromLatitude
@@ -91,7 +98,7 @@ function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
     );
 
     if (isValidCoordinate(originLat, originLon)) {
-      points.push({
+      addPoint({
         id: `AIRPORT-ORIGIN-${item.id ?? item.idTransport}`,
         label:
           item.originAirportName ??
@@ -105,7 +112,7 @@ function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
     }
 
     if (isValidCoordinate(destLat, destLon)) {
-      points.push({
+      addPoint({
         id: `AIRPORT-DESTINATION-${item.id ?? item.idTransport}`,
         label:
           item.destinationAirportName ??
@@ -121,6 +128,50 @@ function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
 
   return points;
 }
+
+// ── grouped select ────────────────────────────────────────────────────────────
+
+function GroupedRouteSelect({
+  id,
+  value,
+  placeholder,
+  routePoints,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  placeholder: string;
+  routePoints: RoutePoint[];
+  onChange: (value: string) => void;
+}) {
+  const activeGroups = GROUP_CONFIG.filter((g) =>
+    routePoints.some((p) => p.type === g.type)
+  );
+
+  return (
+    <select
+      id={id}
+      className="form-select"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">{placeholder}</option>
+      {activeGroups.map((group) => (
+        <optgroup key={group.type} label={group.label}>
+          {routePoints
+            .filter((p) => p.type === group.type)
+            .map((point) => (
+              <option key={point.id} value={point.id}>
+                {point.label} ({group.display})
+              </option>
+            ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+// ── main component ────────────────────────────────────────────────────────────
 
 export default function RoutesForm() {
   const [travelPlans, setTravelPlans] = useState<TravelPlan[]>([]);
@@ -162,7 +213,6 @@ export default function RoutesForm() {
     return buildRoutePoints(selectedTravel);
   }, [selectedTravel]);
 
-  // Reset search state when a different plan is selected
   useEffect(() => {
     setOriginId("");
     setDestinationId("");
@@ -193,11 +243,19 @@ export default function RoutesForm() {
 
   const handleSearch = async () => {
     if (!origin || !destination) {
-      setError("Please select origin and destination.");
+      setError("Please select both origin and destination.");
       return;
     }
     if (origin.id === destination.id) {
       setError("Origin and destination must be different.");
+      return;
+    }
+    if (!isValidCoordinate(origin.latitude, origin.longitude)) {
+      setError("The selected origin does not have valid coordinates.");
+      return;
+    }
+    if (!isValidCoordinate(destination.latitude, destination.longitude)) {
+      setError("The selected destination does not have valid coordinates.");
       return;
     }
 
@@ -300,25 +358,31 @@ export default function RoutesForm() {
           <div>
             <strong>How routes work</strong>
             <p className="mb-0 mt-1">
-              Select a travel plan above to search routes between its saved locations
-              (accommodations, activities, POIs, and airports). You need at least two
-              saved locations with coordinates to calculate a route.
+              Select a travel plan to generate routes between its saved
+              airports, accommodations, and points of interest. You need at
+              least two saved locations with coordinates.
             </p>
           </div>
         </div>
       )}
 
-      {/* Route Search — only when a plan is selected */}
+      {/* Route Search */}
       {selectedTravel && (
         <div className="card bg-dark text-light border-secondary">
           <div className="card-body">
             <h5 className="mb-4 text-center">Search Route</h5>
 
-            {routePoints.length < 2 ? (
+            {routePoints.length === 0 ? (
               <div className="alert alert-warning">
                 <i className="bi bi-exclamation-triangle me-2"></i>
-                This travel plan has fewer than 2 locations with coordinates.
-                Add accommodations, activities, or POIs first.
+                This travel plan has no saved locations with valid coordinates.
+                Save accommodations, POIs, or flights with transport data first.
+              </div>
+            ) : routePoints.length < 2 ? (
+              <div className="alert alert-warning">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                Only one location found. Add at least one more saved location
+                with valid coordinates to generate a route.
               </div>
             ) : (
               <>
@@ -338,42 +402,32 @@ export default function RoutesForm() {
                 <div className="row g-3 align-items-end mb-3">
                   <div className="col-12 col-md-5">
                     <label className="form-label text-light">Origin</label>
-                    <select
-                      className="form-select"
+                    <GroupedRouteSelect
+                      id="origin-select"
                       value={originId}
-                      onChange={(e) => {
-                        setOriginId(e.target.value);
+                      placeholder="Select origin"
+                      routePoints={routePoints}
+                      onChange={(v) => {
+                        setOriginId(v);
                         setRoute(null);
                         setSuccess("");
                       }}
-                    >
-                      <option value="">Select origin</option>
-                      {routePoints.map((point) => (
-                        <option key={point.id} value={point.id}>
-                          [{point.type}] {point.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="col-12 col-md-5">
                     <label className="form-label text-light">Destination</label>
-                    <select
-                      className="form-select"
+                    <GroupedRouteSelect
+                      id="destination-select"
                       value={destinationId}
-                      onChange={(e) => {
-                        setDestinationId(e.target.value);
+                      placeholder="Select destination"
+                      routePoints={routePoints}
+                      onChange={(v) => {
+                        setDestinationId(v);
                         setRoute(null);
                         setSuccess("");
                       }}
-                    >
-                      <option value="">Select destination</option>
-                      {routePoints.map((point) => (
-                        <option key={point.id} value={point.id}>
-                          [{point.type}] {point.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="col-12 col-md-2">
