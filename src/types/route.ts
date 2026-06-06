@@ -1,6 +1,6 @@
 export type RouteMode = "walk" | "drive" | "transit";
 
-export type RoutePointType = "AIRPORT" | "ACCOMMODATION" | "POI";
+export type RoutePointType = "AIRPORT" | "ACCOMMODATION" | "POI" | "ACTIVITY";
 
 export type RoutePoint = {
   id: string;
@@ -9,6 +9,8 @@ export type RoutePoint = {
   latitude: number;
   longitude: number;
   address?: string;
+  iata?: string;
+  entityId?: number | null;
 };
 
 export type RouteSearchRequest = {
@@ -58,6 +60,12 @@ export type StoredRoute = {
   endLon: number;
   geometryCoordinates: [number, number][][]; // MultiLineString
   steps: StoredRouteStep[];
+  originName?: string | null;
+  destinationName?: string | null;
+  originType?: string | null;
+  destinationType?: string | null;
+  originEntityId?: number | null;
+  destinationEntityId?: number | null;
 };
 
 // Generic shape returned by POST /routes (save)
@@ -70,4 +78,10 @@ export type SaveRouteRequest = {
   totalDistanceMeters?: number;
   totalTimeSeconds?: number;
   rawData: unknown;
+  originName?: string | null;
+  destinationName?: string | null;
+  originType?: string | null;
+  destinationType?: string | null;
+  originEntityId?: number | null;
+  destinationEntityId?: number | null;
 };

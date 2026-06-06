@@ -26,26 +26,20 @@ function Navbar() {
           
           {/* Menú izquierda */}
           <ul className="navbar-nav me-auto">
-            <li className="nav-item">
-              <span className="nav-link" style={{ cursor: "pointer" }}>
-                Inicio
-              </span>
-            </li>
           </ul>
 
           {/* Usuario derecha */}
           <div className="d-flex align-items-center gap-3">
-            
-            <img
-              src="https://i.pravatar.cc/40"
-              alt="user"
-              className="rounded-circle"
-              width="40"
-              height="40"
-            />
+
+            <i
+              className="bi bi-person-circle text-light"
+              style={{ fontSize: "2rem", lineHeight: 1 }}
+            ></i>
 
             <span className="text-white">
-              {user.firstName} {user.lastName}
+              {user.firstName
+                ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1)
+                : user.username}
             </span>
 
             <button

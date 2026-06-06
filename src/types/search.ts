@@ -148,8 +148,12 @@ export type AccommodationResult = {
   website?: string;
   phone?: string;
   rating?: number;
+  // GeoJSON-style flat coords
   lat?: number;
   lon?: number;
+  // Some backends return these instead of lat/lon
+  latitude?: number;
+  longitude?: number;
 };
 //export type ActivityResult = Record<string, unknown>;
 export type ActivityResult = {

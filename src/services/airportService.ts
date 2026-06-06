@@ -10,28 +10,41 @@ export type AirportResponse = {
   country?: string;
 };
 
-export async function getAirportByIata(
+export type AirportRouteableResponse = {
+  name?: string;
+  iata?: string;
+  latitude?: number;
+  longitude?: number;
+  originalLatitude?: number;
+  originalLongitude?: number;
+  routePointName?: string;
+};
+
+// Resolves an IATA code to basic display coordinates (centroid only, fast).
+export async function getAirportCoordinates(
   iata: string
 ): Promise<AirportResponse | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(iata + " airport")}&format=json&limit=1`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { "User-Agent": "TFG-Travel-Frontend/1.0" },
-    });
-
+    const url = `${API_CONFIG.baseUrl}/api/airports/coordinates?iata=${encodeURIComponent(iata)}`;
+    const response = await fetch(url, { method: "GET" });
     if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
 
-    const data = await response.json();
-    if (!Array.isArray(data) || data.length === 0) return null;
-
-    return {
-      iata,
-      latitude: parseFloat(data[0].lat),
-      longitude: parseFloat(data[0].lon),
-      name: data[0].display_name,
-    };
+// Resolves an IATA code to routeable coordinates (nearest transport access point via Overpass).
+// Used only at route search time, not for combobox display.
+export async function getRouteableAirportCoordinates(
+  iata: string
+): Promise<AirportRouteableResponse | null> {
+  try {
+    const url = `${API_CONFIG.baseUrl}/api/airports/routeable-coordinates?iata=${encodeURIComponent(iata)}`;
+    console.log(`[airport] routeable-coordinates lookup: iata=${iata}`);
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) return null;
+    return await response.json();
   } catch {
     return null;
   }

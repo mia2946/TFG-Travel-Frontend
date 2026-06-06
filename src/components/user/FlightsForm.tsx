@@ -460,6 +460,7 @@ export default function FlightsForm() {
 
       {results && totalResults === 0 && !error && (
         <div className="alert alert-warning mt-3">
+          <i className="bi bi-airplane me-2"></i>
           No flights were found for this search.
         </div>
       )}

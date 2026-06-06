@@ -100,6 +100,18 @@ function SignUp() {
         <button className="btn btn-modern btn-signup w-100">
           Crear cuenta
         </button>
+
+        <p className="text-center mt-3 mb-0" style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.7)" }}>
+          Already have an account?{" "}
+          <button
+            type="button"
+            className="btn btn-link p-0 register-link"
+            style={{ fontSize: "0.875rem", verticalAlign: "baseline", color: "#4f8cff" }}
+            onClick={() => navigate("/login")}
+          >
+            Log in here
+          </button>
+        </p>
       </form>
     </div>
   );

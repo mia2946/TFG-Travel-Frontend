@@ -93,6 +93,18 @@ function Login() {
           <i className="bi bi-box-arrow-in-right me-2"></i>
           {loading ? "Entrando..." : "Entrar"}
         </button>
+
+        <p className="text-center mt-3 mb-0" style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.7)" }}>
+          Don't have an account yet?{" "}
+          <button
+            type="button"
+            className="btn btn-link p-0 register-link"
+            style={{ fontSize: "0.875rem", verticalAlign: "baseline", color: "#4f8cff" }}
+            onClick={() => navigate("/signup")}
+          >
+            Register here
+          </button>
+        </p>
       </form>
     </div>
   );

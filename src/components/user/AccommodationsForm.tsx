@@ -68,11 +68,15 @@ function getRating(r: AccommodationResult): number | undefined {
 function getCoordinates(
   r: AccommodationResult
 ): { lat: number; lon: number } | undefined {
+  // GeoJSON format: geometry.coordinates = [lon, lat]
   if (r.geometry?.coordinates?.length === 2) {
     return { lon: r.geometry.coordinates[0], lat: r.geometry.coordinates[1] };
   }
-  if (r.lat != null && r.lon != null) {
-    return { lat: r.lat as number, lon: r.lon as number };
+  // Flat format: some backends use lat/lon, others use latitude/longitude
+  const flatLat = r.latitude ?? r.lat;
+  const flatLon = r.longitude ?? r.lon;
+  if (flatLat != null && flatLon != null) {
+    return { lat: Number(flatLat), lon: Number(flatLon) };
   }
   return undefined;
 }
@@ -194,6 +198,20 @@ export default function AccommodationsForm() {
         (form.destination.includes(", ")
           ? form.destination.split(", ").slice(1).join(", ")
           : "");
+
+      const savePayload = {
+        idPoi: null,
+        externalId: `accommodation-${index}-${name}`,
+        source:
+          (result.properties?.datasource?.sourcename as string) || "GEOAPIFY",
+        name,
+        category,
+        type: category,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lon ?? null,
+        address,
+      };
+      console.log("save accommodation payload", savePayload);
 
       await addAccommodationToTravel(Number(selectedTravelId), {
         idPoi: null,

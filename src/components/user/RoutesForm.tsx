@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { TravelPlan } from "../../types/travel";
 import type { RoutePoint, RoutePointType, RouteSearchResponse } from "../../types/route";
 import { getTravelPlans, createTravelPlan } from "../../services/travelService";
 import { searchRoute, saveRoute } from "../../services/routeService";
+import { getAirportCoordinates, getRouteableAirportCoordinates } from "../../services/airportService";
 import TravelRouteMap from "../routes/TravelRouteMap";
 
 // ── group config ──────────────────────────────────────────────────────────────
 
-const GROUP_CONFIG: { type: RoutePointType; label: string; display: string }[] = [
-  { type: "AIRPORT",       label: "Airports",           display: "Airport"       },
-  { type: "ACCOMMODATION", label: "Accommodations",     display: "Accommodation" },
-  { type: "POI",           label: "Points of Interest", display: "POI"           },
+const GROUP_CONFIG: { type: RoutePointType; label: string }[] = [
+  { type: "AIRPORT",       label: "Airports"           },
+  { type: "ACCOMMODATION", label: "Accommodations"     },
+  { type: "ACTIVITY",      label: "Activities"         },
+  { type: "POI",           label: "Points of Interest" },
 ];
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -41,12 +43,13 @@ function formatDuration(seconds: number): string {
   return `${hours} h ${restMinutes} min`;
 }
 
-function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
+// Builds route points from all non-airport sources synchronously.
+function buildSyncRoutePoints(travel: TravelPlan): RoutePoint[] {
   const points: RoutePoint[] = [];
   const seen = new Set<string>();
 
   function addPoint(point: RoutePoint) {
-    const key = `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`;
+    const key = `${point.type}-${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`;
     if (seen.has(key)) return;
     seen.add(key);
     points.push(point);
@@ -54,76 +57,66 @@ function buildRoutePoints(travel: TravelPlan): RoutePoint[] {
 
   // ── Accommodations ────────────────────────────────────────────────────────
   travel.savedAccommodations?.forEach((item: any) => {
-    const lat = Number(item.latitude ?? item.lat);
-    const lon = Number(item.longitude ?? item.lon ?? item.lng);
+    const lat = Number(
+      item.latitude ??
+      item.lat ??
+      item.locationLatitude ??
+      item.destinationLatitude ??
+      item.accommodationLatitude
+    );
+    const lon = Number(
+      item.longitude ??
+      item.lon ??
+      item.lng ??
+      item.locationLongitude ??
+      item.destinationLongitude ??
+      item.accommodationLongitude
+    );
     if (!isValidCoordinate(lat, lon)) return;
+    const rawId = item.id ?? item.idAccommodation ?? item.externalId;
     addPoint({
-      id: `ACCOMMODATION-${item.id ?? item.idAccommodation ?? item.externalId}`,
+      id: `ACCOMMODATION-${rawId}`,
       label: item.name ?? item.hotelName ?? "Accommodation",
       type: "ACCOMMODATION",
       latitude: lat,
       longitude: lon,
       address: item.address,
+      entityId: rawId != null ? Number(rawId) : null,
     });
   });
 
-  // ── POIs (restaurants, cafes, luggage lockers, etc.) ─────────────────────
+  // ── Activities ────────────────────────────────────────────────────────────
+  travel.savedActivities?.forEach((item: any) => {
+    const lat = Number(item.latitude ?? item.lat);
+    const lon = Number(item.longitude ?? item.lon ?? item.lng);
+    if (!isValidCoordinate(lat, lon)) return;
+    const rawId = item.id ?? item.externalId;
+    addPoint({
+      id: `ACTIVITY-${rawId}`,
+      label: item.name ?? item.title ?? "Activity",
+      type: "ACTIVITY",
+      latitude: lat,
+      longitude: lon,
+      address: item.location ?? item.address ?? item.description,
+      entityId: rawId != null ? Number(rawId) : null,
+    });
+  });
+
+  // ── POIs ──────────────────────────────────────────────────────────────────
   travel.savedPois?.forEach((item: any) => {
     const lat = Number(item.latitude ?? item.lat);
     const lon = Number(item.longitude ?? item.lon ?? item.lng);
     if (!isValidCoordinate(lat, lon)) return;
+    const rawId = item.id ?? item.idPoi ?? item.externalId;
     addPoint({
-      id: `POI-${item.id ?? item.idPoi ?? item.externalId}`,
+      id: `POI-${rawId}`,
       label: item.name ?? "POI",
       type: "POI",
       latitude: lat,
       longitude: lon,
       address: item.address,
+      entityId: rawId != null ? Number(rawId) : null,
     });
-  });
-
-  // ── Airports (origin + destination from saved transports/flights) ─────────
-  travel.savedTransports?.forEach((item: any) => {
-    const originLat = Number(
-      item.originLatitude ?? item.departureLatitude ?? item.fromLatitude
-    );
-    const originLon = Number(
-      item.originLongitude ?? item.departureLongitude ?? item.fromLongitude
-    );
-    const destLat = Number(
-      item.destinationLatitude ?? item.arrivalLatitude ?? item.toLatitude
-    );
-    const destLon = Number(
-      item.destinationLongitude ?? item.arrivalLongitude ?? item.toLongitude
-    );
-
-    if (isValidCoordinate(originLat, originLon)) {
-      addPoint({
-        id: `AIRPORT-ORIGIN-${item.id ?? item.idTransport}`,
-        label:
-          item.originAirportName ??
-          item.departureAirportName ??
-          item.origin ??
-          "Origin airport",
-        type: "AIRPORT",
-        latitude: originLat,
-        longitude: originLon,
-      });
-    }
-
-    if (isValidCoordinate(destLat, destLon)) {
-      addPoint({
-        id: `AIRPORT-DESTINATION-${item.id ?? item.idTransport}`,
-        label:
-          item.destinationAirportName ??
-          item.arrivalAirportName ??
-          item.destination ??
-          "Destination airport",
-        type: "AIRPORT",
-        latitude: destLat,
-        longitude: destLon,
-      });
-    }
   });
 
   return points;
@@ -162,7 +155,7 @@ function GroupedRouteSelect({
             .filter((p) => p.type === group.type)
             .map((point) => (
               <option key={point.id} value={point.id}>
-                {point.label} ({group.display})
+                {point.label}
               </option>
             ))}
         </optgroup>
@@ -179,6 +172,9 @@ export default function RoutesForm() {
   const [newTravelName, setNewTravelName] = useState("");
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [creatingPlan, setCreatingPlan] = useState(false);
+
+  const [routePoints, setRoutePoints] = useState<RoutePoint[]>([]);
+  const [loadingPoints, setLoadingPoints] = useState(false);
 
   const [originId, setOriginId] = useState("");
   const [destinationId, setDestinationId] = useState("");
@@ -208,11 +204,7 @@ export default function RoutesForm() {
   const selectedTravel =
     travelPlans.find((p) => p.id === Number(selectedTravelId)) ?? null;
 
-  const routePoints: RoutePoint[] = useMemo(() => {
-    if (!selectedTravel) return [];
-    return buildRoutePoints(selectedTravel);
-  }, [selectedTravel]);
-
+  // Build route points: sync sources first, then async airport resolution.
   useEffect(() => {
     setOriginId("");
     setDestinationId("");
@@ -220,7 +212,72 @@ export default function RoutesForm() {
     setRawData(null);
     setError("");
     setSuccess("");
-  }, [selectedTravelId]);
+
+    if (!selectedTravel) {
+      setRoutePoints([]);
+      return;
+    }
+
+    console.log("selectedTravel", selectedTravel);
+    console.log("savedFlights", selectedTravel?.savedFlights);
+    console.log("savedAccommodations", selectedTravel?.savedAccommodations);
+
+    const syncPoints = buildSyncRoutePoints(selectedTravel);
+    setRoutePoints(syncPoints);
+
+    // Collect unique IATA codes from saved flights.
+    const iataSet = new Set<string>();
+    selectedTravel.savedFlights?.forEach((f: any) => {
+      if (f.originAirport?.trim())
+        iataSet.add(f.originAirport.trim().toUpperCase());
+      if (f.destinationAirport?.trim())
+        iataSet.add(f.destinationAirport.trim().toUpperCase());
+    });
+
+    if (iataSet.size === 0) {
+      console.log("routePoints", syncPoints);
+      return;
+    }
+
+    const iataList = [...iataSet];
+    setLoadingPoints(true);
+
+    Promise.all(iataList.map((iata) => getAirportCoordinates(iata)))
+      .then((results) => {
+        const airportPoints: RoutePoint[] = [];
+        results.forEach((airport, i) => {
+          if (!airport) return;
+          const iata = iataList[i];
+          const lat = airport.latitude;
+          const lon = airport.longitude;
+          if (!isValidCoordinate(lat, lon)) return;
+          airportPoints.push({
+            id: `AIRPORT-${iata}`,
+            label: airport.name ?? airport.city ?? iata,
+            type: "AIRPORT",
+            latitude: lat!,
+            longitude: lon!,
+            iata,
+            entityId: null,
+          });
+        });
+
+        setRoutePoints((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const combined = [
+            ...prev,
+            ...airportPoints.filter((p) => !existingIds.has(p.id)),
+          ];
+          console.log("routePoints", combined);
+          return combined;
+        });
+      })
+      .catch((err) => {
+        console.error("Error loading airport coordinates:", err);
+        console.log("routePoints", syncPoints);
+      })
+      .finally(() => setLoadingPoints(false));
+  }, [selectedTravelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const origin = routePoints.find((p) => p.id === originId);
   const destination = routePoints.find((p) => p.id === destinationId);
@@ -259,6 +316,9 @@ export default function RoutesForm() {
       return;
     }
 
+    console.log("[route] selected origin", origin);
+    console.log("[route] selected destination", destination);
+
     try {
       setLoading(true);
       setError("");
@@ -266,12 +326,45 @@ export default function RoutesForm() {
       setRoute(null);
       setRawData(null);
 
-      const { route: result, rawData: raw } = await searchRoute({
-        startLatitude: origin.latitude,
-        startLongitude: origin.longitude,
-        endLatitude: destination.latitude,
-        endLongitude: destination.longitude,
-      });
+      // Resolve routeable coordinates for AIRPORT points before calling the route API.
+      let startLat = origin.latitude;
+      let startLon = origin.longitude;
+      let endLat = destination.latitude;
+      let endLon = destination.longitude;
+
+      if (origin.type === "AIRPORT" && origin.iata) {
+        console.log(`[route] origin is AIRPORT (${origin.iata}) — resolving routeable coordinates`);
+        const routeable = await getRouteableAirportCoordinates(origin.iata);
+        if (routeable?.latitude != null && routeable?.longitude != null) {
+          console.log(`[route] origin routeable coordinate: lat=${routeable.latitude} lon=${routeable.longitude} point="${routeable.routePointName ?? "centroid"}"`);
+          startLat = routeable.latitude;
+          startLon = routeable.longitude;
+        } else {
+          console.log(`[route] origin routeable lookup failed, using display coordinate`);
+        }
+      }
+
+      if (destination.type === "AIRPORT" && destination.iata) {
+        console.log(`[route] destination is AIRPORT (${destination.iata}) — resolving routeable coordinates`);
+        const routeable = await getRouteableAirportCoordinates(destination.iata);
+        if (routeable?.latitude != null && routeable?.longitude != null) {
+          console.log(`[route] destination routeable coordinate: lat=${routeable.latitude} lon=${routeable.longitude} point="${routeable.routePointName ?? "centroid"}"`);
+          endLat = routeable.latitude;
+          endLon = routeable.longitude;
+        } else {
+          console.log(`[route] destination routeable lookup failed, using display coordinate`);
+        }
+      }
+
+      const routeRequest = {
+        startLatitude: startLat,
+        startLongitude: startLon,
+        endLatitude: endLat,
+        endLongitude: endLon,
+      };
+      console.log("[route] final route request body", routeRequest);
+
+      const { route: result, rawData: raw } = await searchRoute(routeRequest);
 
       setRoute(result);
       setRawData(raw);
@@ -295,6 +388,12 @@ export default function RoutesForm() {
         totalDistanceMeters: route.distanceMeters,
         totalTimeSeconds: route.durationSeconds,
         rawData,
+        originName: origin?.label ?? null,
+        destinationName: destination?.label ?? null,
+        originType: origin?.type ?? null,
+        destinationType: destination?.type ?? null,
+        originEntityId: origin?.entityId ?? null,
+        destinationEntityId: destination?.entityId ?? null,
       });
 
       setSuccess("Route saved to the travel plan.");
@@ -359,8 +458,8 @@ export default function RoutesForm() {
             <strong>How routes work</strong>
             <p className="mb-0 mt-1">
               Select a travel plan to generate routes between its saved
-              airports, accommodations, and points of interest. You need at
-              least two saved locations with coordinates.
+              airports, accommodations, activities, and points of interest.
+              You need at least two saved locations with coordinates.
             </p>
           </div>
         </div>
@@ -372,11 +471,17 @@ export default function RoutesForm() {
           <div className="card-body">
             <h5 className="mb-4 text-center">Search Route</h5>
 
-            {routePoints.length === 0 ? (
+            {loadingPoints ? (
+              <div className="text-center py-3">
+                <span className="spinner-border spinner-border-sm me-2" role="status" />
+                Loading locations…
+              </div>
+            ) : routePoints.length === 0 ? (
               <div className="alert alert-warning">
                 <i className="bi bi-exclamation-triangle me-2"></i>
                 This travel plan has no saved locations with valid coordinates.
-                Save accommodations, POIs, or flights with transport data first.
+                Save airports, accommodations, activities, or POIs with
+                coordinate data first.
               </div>
             ) : routePoints.length < 2 ? (
               <div className="alert alert-warning">

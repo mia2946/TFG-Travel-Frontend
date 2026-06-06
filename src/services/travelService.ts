@@ -154,3 +154,69 @@ export async function addPoiToTravel(
 
   return await response.json();
 }
+
+export async function deleteAccommodationFromTravel(
+  travelId: number,
+  accommodationId: number
+): Promise<void> {
+  const user = getSession();
+  if (!user) throw new Error("User not logged");
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}${API_CONFIG.accommodationsSave.path}/${user.id}/${travelId}/${accommodationId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) throw new Error(`Error deleting accommodation: ${response.status}`);
+}
+
+export async function deleteActivityFromTravel(
+  travelId: number,
+  activityId: number
+): Promise<void> {
+  const user = getSession();
+  if (!user) throw new Error("User not logged");
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}${API_CONFIG.activitiesSave.path}/${user.id}/${travelId}/${activityId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) throw new Error(`Error deleting activity: ${response.status}`);
+}
+
+export async function deletePoiFromTravel(
+  travelId: number,
+  poiId: number
+): Promise<void> {
+  const user = getSession();
+  if (!user) throw new Error("User not logged");
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}${API_CONFIG.pois.save.path}/${user.id}/${travelId}/${poiId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) throw new Error(`Error deleting POI: ${response.status}`);
+}
+
+export async function deleteFlightFromTravel(
+  travelId: number,
+  flightId: number
+): Promise<void> {
+  const user = getSession();
+  if (!user) throw new Error("User not logged");
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}${API_CONFIG.flightsSave.path}/${user.id}/${travelId}/${flightId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) throw new Error(`Error deleting flight: ${response.status}`);
+}
+
+// NOTE: Backend must implement DELETE /transports/{userId}/{travelId}/{transportId}
+export async function deleteTransportFromTravel(
+  travelId: number,
+  transportId: number
+): Promise<void> {
+  const user = getSession();
+  if (!user) throw new Error("User not logged");
+  const response = await fetch(
+    `${API_CONFIG.baseUrl}/transports/${user.id}/${travelId}/${transportId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) throw new Error(`Error deleting transport: ${response.status}`);
+}

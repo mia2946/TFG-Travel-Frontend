@@ -43,6 +43,7 @@ export default function UserPage() {
   const [user, setUser] = useState<User | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabKey>("flights");
+  const [hasTravels, setHasTravels] = useState(true);
 
   const [lastSearchTab, setLastSearchTab] =
     useState<SearchTabKey>("flights");
@@ -79,21 +80,21 @@ export default function UserPage() {
       <Navbar />
 
       <div className="user-page container mt-4 mb-5">
-        <h2 className="mb-4 text-center">User Page</h2>
-
         <UserProfileCard user={user} />
 
         {/* BUTTON TO SWITCH VIEWS */}
-        <div className="d-flex justify-content-center mb-4">
+        <div className={`d-flex justify-content-center ${activeTab === "travels" && !hasTravels ? "mb-0" : "mb-4"}`}>
           {activeTab === "travels" ? (
-            <button
-              type="button"
-              className="btn btn-outline-light btn-lg"
-              onClick={() => setActiveTab(lastSearchTab)}
-            >
-              <i className="bi bi-arrow-left me-2"></i>
-              Back to Search
-            </button>
+            hasTravels && (
+              <button
+                type="button"
+                className="btn btn-outline-light btn-lg"
+                onClick={() => setActiveTab(lastSearchTab)}
+              >
+                <i className="bi bi-arrow-left me-2"></i>
+                Back to Search
+              </button>
+            )
           ) : (
             <button
               type="button"
@@ -110,7 +111,10 @@ export default function UserPage() {
         {activeTab === "travels" ? (
           <div className="card bg-dark text-light shadow">
             <div className="card-body">
-              <TravelPlans />
+              <TravelPlans
+                onGoToSearch={() => setActiveTab("flights")}
+                onPlansLoaded={(count) => setHasTravels(count > 0)}
+              />
             </div>
           </div>
         ) : (

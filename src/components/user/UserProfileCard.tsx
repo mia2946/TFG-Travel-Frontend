@@ -17,7 +17,9 @@ export default function UserProfileCard({ user }: Props) {
     <div className="card bg-dark text-light shadow mb-4">
       <div className="card-body">
         <h4 className="card-title mb-4">
-          {user.firstName} {user.lastName}
+          {user.firstName
+            ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1)
+            : user.username}
         </h4>
 
         <div className="row">
@@ -39,12 +41,6 @@ export default function UserProfileCard({ user }: Props) {
             </p>
             <p>
               <strong>Language:</strong> {user.language}
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              <span className={`badge ${user.active ? "bg-success" : "bg-danger"}`}>
-                {user.active ? "Activo" : "Inactivo"}
-              </span>
             </p>
           </div>
         </div>
