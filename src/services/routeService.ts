@@ -31,7 +31,7 @@ export async function searchRoute(
   try {
     // Backend format: { totalDistanceMeters, totalTimeSeconds, geometryCoordinates, steps }
     // geometryCoordinates is a MultiLineString: [[[lon, lat], ...], ...]
-    // TravelRouteMap swaps [lon, lat] → [lat, lon] itself, so store as [lon, lat].
+    // TravelRouteMap swaps [lon, lat] --> [lat, lon] itself, so store as [lon, lat].
     if (rawData.geometryCoordinates !== undefined || rawData.totalDistanceMeters !== undefined) {
       const geoCoords: [number, number][][] = Array.isArray(rawData.geometryCoordinates)
         ? rawData.geometryCoordinates

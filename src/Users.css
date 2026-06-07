@@ -26,17 +26,17 @@
   transition: all 0.2s ease;
 }
 
-/* ICONOS */
+/* ICONS */
 .user-page .user-tab-button i {
   font-size: 1.2rem;
 }
 
-/* TEXTO OCULTO EN MÓVIL */
+/* HIDDEN TEXT IN MOBILE */
 .user-page .tab-text {
   display: none;
 }
 
-/* ACTIVO */
+/* ACTIVE */
 .user-page .user-tab-button.active {
   font-weight: 600;
   box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3);
@@ -68,7 +68,7 @@
   }
 }
 
-/* MÓVIL */
+/* MOBILE */
 @media (max-width: 991.98px) {
   .user-page .user-tab-button {
     flex: 1 1 18%;
@@ -104,20 +104,20 @@
   padding-left: 2.5rem;
 }
 
-/* ACTIVO / CON VALOR */
+/* ACTIVO / WITH VALUE */
 .user-page .form-floating > .form-control:focus ~ label,
 .user-page .form-floating > .form-control:not(:placeholder-shown) ~ label,
 .user-page .form-floating > .form-select ~ label {
   color: #0d6efd;
 }
 
-/* evita que el placeholder choque con el label flotante */
+/* avoids collision between placeholder and floating label */
 .user-page .form-control::placeholder {
   color: transparent;
 }
 
 /* =========================
-   INPUT CON ICONO
+   INPUT WITH ICON
 ========================= */
 
 .user-page .input-icon {

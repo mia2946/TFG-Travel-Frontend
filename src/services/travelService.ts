@@ -207,7 +207,6 @@ export async function deleteFlightFromTravel(
   if (!response.ok) throw new Error(`Error deleting flight: ${response.status}`);
 }
 
-// NOTE: Backend must implement DELETE /transports/{userId}/{travelId}/{transportId}
 export async function deleteTransportFromTravel(
   travelId: number,
   transportId: number

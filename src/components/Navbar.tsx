@@ -24,11 +24,11 @@ function Navbar() {
 
         <div className="collapse navbar-collapse" id="navbarContent">
           
-          {/* Menú izquierda */}
+          {/* Top menu bar left side */}
           <ul className="navbar-nav me-auto">
           </ul>
 
-          {/* Usuario derecha */}
+          {/* Top menu bar right  side / Show user */}
           <div className="d-flex align-items-center gap-3">
 
             <i

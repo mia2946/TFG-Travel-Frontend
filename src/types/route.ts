@@ -41,7 +41,6 @@ export type RouteSearchResult = {
   rawData: unknown;
 };
 
-// Shape returned by GET /routes/{userId}/{travelId}/{transportId}
 export type StoredRouteStep = {
   stepOrder: number;
   distanceMeters: number;
@@ -68,7 +67,6 @@ export type StoredRoute = {
   destinationEntityId?: number | null;
 };
 
-// Generic shape returned by POST /routes (save)
 export type SavedRoute = {
   id?: number;
 };

@@ -8,7 +8,6 @@ export type AppDestination = {
   description?: string;
 };
 
-// Flat structure returned by the backend in savedFlights
 export type SavedFlight = {
   id: number;
   airline: string;

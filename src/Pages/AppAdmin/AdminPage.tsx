@@ -10,7 +10,7 @@ export default function AdminPage() {
     loadUsers().then(setUsers);
   }, []);
 
-  // 🔁 Activar / desactivar usuario
+  // Ativate/deactivate user
   const toggleUser = async (username: string) => {
     const allUsers = await loadUsers();
 
@@ -22,14 +22,14 @@ export default function AdminPage() {
       active: !userToUpdate.active
     };
 
-    // 🔥 ACTUALIZACIÓN INMEDIATA EN UI (UX PRO)
+    // Immediate UI update (UX PRO)
     setUsers(prev =>
       prev.map(u =>
         u.username === username ? updatedUser : u
       )
     );
 
-    // 🔧 Persistencia en localStorage
+    // localStorage persistence
     const localUsers: User[] = JSON.parse(
       localStorage.getItem("users") || "[]"
     );
@@ -46,7 +46,7 @@ export default function AdminPage() {
 
     localStorage.setItem("users", JSON.stringify(localUsers));
 
-    // 🔥 Limpiar cache y recargar datos reales
+    // Clear cache and reload data
     clearUsersCache();
     loadUsers().then(setUsers);
   };

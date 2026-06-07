@@ -155,7 +155,7 @@ export type AccommodationResult = {
   latitude?: number;
   longitude?: number;
 };
-//export type ActivityResult = Record<string, unknown>;
+
 export type ActivityResult = {
   type: string;
   geometry: {

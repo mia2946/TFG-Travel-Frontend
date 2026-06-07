@@ -3,7 +3,7 @@ body {
 }
 
 
-/* Botón principal */
+/* Main button */
 .btn-modern {
   border-radius: 12px;
   padding: 14px;
@@ -12,7 +12,7 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Botón Login */
+/* Login button */
 .btn-login {
   background: linear-gradient(135deg, #4f8cff, #6a5cff);
   border: none;
@@ -24,7 +24,7 @@ body {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Botón Sign In */
+/* Sign In Button */
 .btn-signup {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.4);
